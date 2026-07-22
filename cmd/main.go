@@ -3,21 +3,26 @@ package main
 import (
 	"blog_post/config"
 	"blog_post/drivers/db"
+	"blog_post/internals/router"
 	"fmt"
+	"log"
+
+	"github.com/gofiber/fiber"
 )
 
 func main() {
 	cfg := config.InitConfig()
-
-	_, err := db.InitDB(cfg)
+	Db, err := db.InitDB(cfg)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	// router := router.SetRouter(Db)
+	app := fiber.New()
 
-	// fmt.Println("Server started ...")
+	router.SetAuthRouter(app, Db)
 
-	// log.Fatal(http.ListenAndServe(cfg.HttpPortConfig.HttpPort, router))
+	fmt.Println("Server started ...")
+
+	log.Fatal(app.Listen(cfg.HttpPortConfig.HttpPort))
 }

@@ -1,0 +1,82 @@
+Blog Post - Using Golang & Postgres SQL 
+
+    Router Purpose - Fibre Frame Work
+    Logger Purpose - Logrus Package
+    Password Hashing (encryption)
+    ORM - GORM
+
+( User , Admin ) => JWT Token for Role Based Authentication
+
+Auth Service : 
+    Signup
+    Signin
+
+Users Service:
+    Update user
+    Get user
+    Get user by id
+    Delete user
+
+Blog Service : 
+    Get Blog
+    Get by id
+    Create Blog
+    Update Blog
+    Delete Blog
+
+Category Service : (Only Admin) 
+    GetCategories - (User)
+    GetCategories By id  - (User)
+    Create Categories
+    Update Categories
+    Delete Categories
+
+Comment Service : 
+    GetComment
+    GetComment By ID
+    Create Comment 
+    Update Comment  
+    Delete Comment ( user & admin)
+
+Reply Service:
+    GetReply 
+    GetReply  By ID
+    Create Reply 
+    Update Reply  
+    Delete Reply  ( user & admin)
+
+Like Service :
+    Delete like
+    Create like
+
+Table Schema:
+
+ 1)   Table Name    - users
+      Column Names  - id, username, password_hash, email, role, created_at, updated_at, deleted_at
+
+*id ( PK )
+
+2)  Table Name        - Blog  
+    Column Names  - id, Title , content , category_id, author_id, created_at, updated_at,deleted_at   
+
+* category_id ( FK ), blog_id( PK ),author_id( FK )
+
+3)  Table Name        - Category  * Only admin
+    Column Names  - id, category_name , created_at, updated_at, deleted_at 
+
+*id ( PK )
+ 
+4)  Table Name        - Comment  *Only user 
+	Column Names  - id , message, blog_id ,user_id,created_at, updated_at, deleted_at 
+
+*id( PK ) , blog_id ( FK ) , user_id ( FK )
+
+5) Table Name    -    likes *Only user
+	Column Names - id , like_action , user_id,created_at, updated_at, deleted_at 
+
+* user_id( FK ), id ( PK )
+
+6) Table Name  - Reply 
+    Column Names  - id , message, blog_id ,user_id,created_at, updated_at, deleted_at 
+
+*id( PK ) , blog_id ( FK ) , user_id ( FK )

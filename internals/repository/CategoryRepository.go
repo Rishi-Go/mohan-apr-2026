@@ -16,7 +16,7 @@ type categoryRepo struct {
 	Db *gorm.DB
 }
 
-func InitRepo(Db *gorm.DB) CategoryRepo {
+func InitCategoryRepo(Db *gorm.DB) CategoryRepo {
 	return &categoryRepo{Db}
 }
 

@@ -8,6 +8,8 @@ import (
 
 type BlogUsers struct {
 	ID           uuid.UUID `json:"id" gorm:"type:uuid;default:gen_random_uuid();primarykey"`
+	FirstName    string    `json:"firstname" gorm:"size:100"`
+	LastName     string    `json:"lastname" gorm:"size:100"`
 	UserName     string    `json:"username" gorm:"size:100"`
 	PasswordHash string    `json:"password_hash" gorm:"size:100"`
 	Email        string    `json:"email"`
@@ -32,7 +34,7 @@ type Blog struct {
 	CategoryId uuid.UUID `json:"category_id"`
 	Category   Category  `json:"-" gorm:"foreignkey:CategoryId;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	AuthorID   uuid.UUID `json:"author_id"`
-	BlogUser   BlogUsers `json:"-" gorm:"foreignkey:AuthorID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	Users   BlogUsers     `json:"-" gorm:"foreignkey:AuthorID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	CreatedAt  time.Time `json:"created_at" gorm:"type:timestamptz;default:CURRENT_TIMESTAMP"`
 	UpdatedAt  time.Time `json:"updated_at"`
 	DeletedAt  time.Time `json:"deleted_at"`
@@ -44,7 +46,7 @@ type Comment struct {
 	BlogID    uuid.UUID `json:"blog_id"`
 	Blog      Blog      ` json:"-" gorm:"foreignkey:BlogID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	UserID    uuid.UUID `json:"user_id"`
-	BlogUser  BlogUsers `json:"-" gorm:"foreignkey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	Users  BlogUsers     `json:"-" gorm:"foreignkey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `json:"updated_at"`
 	DeletedAt time.Time `json:"deleted_at"`
@@ -54,21 +56,20 @@ type Like struct {
 	ID           uuid.UUID `json:"id" gorm:"type:uuid;default:gen_random_uuid();primarykey"`
 	LikeResponse bool      `json:"like_response"`
 	UserID       uuid.UUID `json:"user_id"`
-	BlogUser     BlogUsers `json:"-" gorm:"foreignkey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	BlogUser     BlogUsers     `json:"-" gorm:"foreignkey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	CreatedAt    time.Time `json:"created_at" gorm:"type:timestamptz;default:CURRENT_TIMESTAMP"`
 	UpdatedAt    time.Time `json:"updated_at"`
 	DeletedAt    time.Time `json:"deleted_at"`
 }
 
-type Reply struct{
-	ID           uuid.UUID `json:"id" gorm:"type:uuid;default:gen_random_uuid();primarykey"`
-	Reply   string    `json:"reply" gorm:"size:500"`
+type Reply struct {
+	ID        uuid.UUID `json:"id" gorm:"type:uuid;default:gen_random_uuid();primarykey"`
+	Reply     string    `json:"reply" gorm:"size:500"`
 	BlogID    uuid.UUID `json:"blog_id"`
 	Blog      Blog      ` json:"-" gorm:"foreignkey:BlogID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	UserID    uuid.UUID `json:"user_id"`
-	BlogUser  BlogUsers `json:"-" gorm:"foreignkey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	BlogUser  BlogUsers     `json:"-" gorm:"foreignkey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `json:"updated_at"`
 	DeletedAt time.Time `json:"deleted_at"`
 }
-
