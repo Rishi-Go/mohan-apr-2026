@@ -1,11 +1,14 @@
 package router
 
 import (
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
 
-func SetRouter(app *fiber.App, Db *gorm.DB) {
-	apiRouter := app.Group("/api/v1")
-	SetAuthRouter(apiRouter, Db)
+func SetRouter(app fiber.Router, Db *gorm.DB) {
+
+	SetAuthRouter(app,Db)
+	SetCategoryRouter(app,Db)
+	SetLikeRouter(app,Db)
+
 }

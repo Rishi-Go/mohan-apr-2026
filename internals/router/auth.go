@@ -5,16 +5,21 @@ import (
 	"blog_post/internals/repository"
 	"blog_post/internals/service"
 
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
 
 func SetAuthRouter(app fiber.Router, Db *gorm.DB) {
-	authRouter := app.Group("/auth")
 
 	repo := repository.InitAuthRepo(Db)
 	service := service.InitAuthService(repo)
-	handle := handler.InitHandler(service)
+	handle:= handler.InitAuthHandler(service)
 
-	authRouter.Post("/insert", handle.InsertSignUP)
+	authRouter := app.Group("api/v1/sign-up")
+
+	authRouter.Post("/insert", handle.InsertUser)
+	authRouter.Get("/get", handle.GetUser)
+	authRouter.Get("/get-id/:id", handle.SelectUser)
+	authRouter.Patch("/update/:id", handle.UpdateUser)
+	authRouter.Delete("/delete/:id", handle.DeleteUser)
 }

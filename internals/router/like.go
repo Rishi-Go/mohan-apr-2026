@@ -1,0 +1,25 @@
+package router
+
+import (
+	"blog_post/internals/handler"
+	"blog_post/internals/repository"
+	"blog_post/internals/service"
+
+	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
+)
+
+func SetLikeRouter(app fiber.Router, Db *gorm.DB) {
+
+	repo := repository.InitLikeRepo(Db)
+	service := service.InitLikeService(repo)
+	handle := handler.InitLikrHandler(service)
+
+	authRouter := app.Group("api/v1/like")
+
+	authRouter.Post("/insert", handle.InsertLike)
+	// authRouter.Get("/get", handle.GetUser)
+	// authRouter.Get("/get-id/:id", handle.SelectUser)
+	// authRouter.Patch("/update/:id", handle.UpdateUser)
+	// authRouter.Delete("/delete/:id", handle.DeleteUser)
+}

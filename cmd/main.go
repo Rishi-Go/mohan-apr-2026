@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v3"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 
 	app := fiber.New()
 
-	router.SetAuthRouter(app, Db)
+	router.SetRouter(app, Db)
 
 	fmt.Println("Server started ...")
 
