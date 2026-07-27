@@ -3,6 +3,7 @@ package repository
 import (
 	"blog_post/internals/dto"
 	"blog_post/pkg/models"
+	"errors"
 
 	"github.com/gofrs/uuid"
 	"gorm.io/gorm"
@@ -10,7 +11,10 @@ import (
 
 type LikeRepo interface {
 	InsertLike(res dto.LikeRequest) error
-	// GetLike(page int, limit int, offset int, like bool,user_id uuid.UUID) ([]models.Like, *dto.Pagination, error)
+	GetLike(page int, limit int, offset int, like string, user_id uuid.UUID) ([]models.Like, *dto.Pagination, error)
+	SelectLike(id uuid.UUID) (models.Like, error)
+	UpdateLike(res dto.LikeRequest, id uuid.UUID) error
+	DeleteLike(id uuid.UUID) error
 }
 
 type likeRepo struct {
@@ -21,7 +25,7 @@ func InitLikeRepo(Db *gorm.DB) LikeRepo {
 	return &likeRepo{Db}
 }
 
-func (like likeRepo) InsertLike(res dto.LikeRequest) error {
+func (likeRepo likeRepo) InsertLike(res dto.LikeRequest) error {
 
 	LikeId, err := uuid.NewV7()
 	if err != nil {
@@ -34,7 +38,7 @@ func (like likeRepo) InsertLike(res dto.LikeRequest) error {
 		UserID:       res.UserID,
 	}
 
-	result := like.Db.Create(&row)
+	result := likeRepo.Db.Create(&row)
 	err = result.Error
 	if err != nil {
 		return err
@@ -42,41 +46,73 @@ func (like likeRepo) InsertLike(res dto.LikeRequest) error {
 	return nil
 }
 
-// func (like likeRepo) GetLike(page int, limit int, offset int, like bool,user_id uuid.UUID) ([]models.Like, *dto.Pagination, error) {
+func (likeRepo likeRepo) GetLike(page int, limit int, offset int, like string, userid uuid.UUID) ([]models.Like, *dto.Pagination, error) {
 
-// 	var likes []models.Like
+	var likes []models.Like
 
-// 	var count int64
+	var count int64
 
-// 	query := like.Db.Model(&likes)
+	query := likeRepo.Db.Model(&likes)
 
-// 	err := query.Count(&count).Error
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
+	err := query.Count(&count).Error
+	if err != nil {
+		return nil, nil, err
+	}
 
-// 	if like != false {
-// 		records := query.Where(" ").Session(&gorm.Session{})
-// 		if records.Error != nil {
-// 			return nil, nil, records.Error
-// 		}
-// 	}
+	if like != "" {
+		records := query.Where("like_response LIKE ?", "%"+like+"%").Session(&gorm.Session{})
+		if records.Error != nil {
+			return nil, nil, records.Error
+		}
+	}
 
-// 	result := query.Limit(limit).Offset(offset).Find(&likes)
+	if userid != uuid.Nil {
+		record := query.Where("user_id = ?", userid).Session(&gorm.Session{})
+		if record.Error != nil {
+			return nil, nil, record.Error
+		}
+	}
 
-// 	if result.RowsAffected == 0 {
-// 		return nil, nil, errors.New("Like Record data not found")
-// 	}
-// 	return likes, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
-// }
+	result := query.Limit(limit).Offset(offset).Find(&likes)
 
-// func (repo likeRepo) SelectLike(id uuid.UUID) (models.Like, error) {
+	if result.RowsAffected == 0 {
+		return nil, nil, errors.New("Like Record data not found")
+	}
+	return likes, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
+}
 
-// 	var likes models.Like
+func (likeRepo likeRepo) SelectLike(id uuid.UUID) (models.Like, error) {
 
-// 	result := repo.Db.First(&likes, "id =?", id)
-// 	if result.RowsAffected == 0 {
-// 		return models.Like{}, errors.New("Like Record data not found")
-// 	}
-// 	return likes, nil
-// }
+	var likes models.Like
+
+	result := likeRepo.Db.First(&likes, "id =?", id)
+	if result.RowsAffected == 0 {
+		return models.Like{}, errors.New("Like Record data not found")
+	}
+	return likes, nil
+}
+
+func (likeRepo likeRepo) UpdateLike(res dto.LikeRequest, id uuid.UUID) error {
+
+	var likes models.Like
+
+	result := likeRepo.Db.Model(&likes).Where("id = ?", id).Updates(models.Like{
+		LikeResponse: res.LikeResponse,
+		UserID: res.UserID,
+	})
+
+	if result.RowsAffected == 0 {
+		return errors.New("Like Record data not found")
+	}
+	return nil
+}
+
+func (likeRepo likeRepo) DeleteLike(id uuid.UUID) error {
+
+	var likes models.Like
+	result := likeRepo.Db.Model(&likes).Delete(&likes, id)
+	if result.RowsAffected == 0 {
+		return errors.New("Like Record data not found")
+	}
+	return nil
+}

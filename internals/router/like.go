@@ -13,13 +13,13 @@ func SetLikeRouter(app fiber.Router, Db *gorm.DB) {
 
 	repo := repository.InitLikeRepo(Db)
 	service := service.InitLikeService(repo)
-	handle := handler.InitLikrHandler(service)
+	handle := handler.InitLikeHandler(service)
 
-	authRouter := app.Group("api/v1/like")
+	likeRouter := app.Group("api/v1/like")
 
-	authRouter.Post("/insert", handle.InsertLike)
-	// authRouter.Get("/get", handle.GetUser)
-	// authRouter.Get("/get-id/:id", handle.SelectUser)
-	// authRouter.Patch("/update/:id", handle.UpdateUser)
-	// authRouter.Delete("/delete/:id", handle.DeleteUser)
+	likeRouter.Post("/insert", handle.InsertLike)
+	likeRouter.Get("/get", handle.GetLike)
+	likeRouter.Get("/get-id/:id", handle.SelectLike)
+	likeRouter.Patch("/update/:id", handle.UpdateLike)
+	likeRouter.Delete("/delete/:id", handle.DeleteLike)
 }

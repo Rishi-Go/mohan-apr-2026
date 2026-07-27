@@ -1,0 +1,129 @@
+package repository
+
+import (
+	"blog_post/internals/dto"
+	"blog_post/pkg/models"
+	"errors"
+
+	"github.com/gofrs/uuid"
+	"gorm.io/gorm"
+)
+
+type BlogRepo interface {
+	InsertBlog(res dto.BlogRequest) error
+	GetBlog(page int, limit int, offset int, title string, categoryId uuid.UUID, authorId uuid.UUID) ([]models.Blog, *dto.Pagination, error)
+	SelectBlog(id uuid.UUID) (models.Blog, error)
+	UpdateBlog(res dto.BlogRequest, id uuid.UUID) error
+	DeleteBlog(id uuid.UUID) error
+}
+
+type blogRepo struct {
+	Db *gorm.DB
+}
+
+func InitBlogRepo(Db *gorm.DB) BlogRepo {
+	return &blogRepo{Db}
+}
+
+func (blogRepo blogRepo) InsertBlog(res dto.BlogRequest) error {
+
+	BlogId, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
+
+	row := models.Blog{
+		ID:         BlogId,
+		Title:      res.Title,
+		Content:    res.Content,
+		CategoryId: res.CategoryId,
+		AuthorID:   res.AuthorID,
+	}
+
+	result := blogRepo.Db.Create(&row)
+	err = result.Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (blogRepo blogRepo) GetBlog(page int, limit int, offset int, title string, categoryId uuid.UUID, authorId uuid.UUID) ([]models.Blog, *dto.Pagination, error) {
+
+	var blogs []models.Blog
+
+	var count int64
+
+	query := blogRepo.Db.Model(&blogs)
+
+	err := query.Count(&count).Error
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if title != "" {
+		records := query.Where("title LIKE ?", "%"+title+"%").Session(&gorm.Session{})
+		if records.Error != nil {
+			return nil, nil, records.Error
+		}
+	}
+
+	if categoryId != uuid.Nil {
+		record := query.Where("category_id = ?", categoryId).Session(&gorm.Session{})
+		if record.Error != nil {
+			return nil, nil, record.Error
+		}
+	}
+
+	if authorId != uuid.Nil {
+		record := query.Where("author_id = ?", authorId).Session(&gorm.Session{})
+		if record.Error != nil {
+			return nil, nil, record.Error
+		}
+	}
+
+	result := query.Limit(limit).Offset(offset).Find(&blogs)
+
+	if result.RowsAffected == 0 {
+		return nil, nil, errors.New("Blog Record data not found")
+	}
+	return blogs, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
+}
+
+func (blogRepo blogRepo) SelectBlog(id uuid.UUID) (models.Blog, error) {
+
+	var Blogs models.Blog
+
+	result := blogRepo.Db.First(&Blogs, "id =?", id)
+	if result.RowsAffected == 0 {
+		return models.Blog{}, errors.New("Blog Record data not found")
+	}
+	return Blogs, nil
+}
+
+func (blogRepo blogRepo) UpdateBlog(res dto.BlogRequest, id uuid.UUID) error {
+
+	var blogs models.Blog
+
+	result := blogRepo.Db.Model(&blogs).Where("id = ?", id).Updates(models.Blog{
+		Title:      res.Title,
+		Content:    res.Content,
+		CategoryId: res.CategoryId,
+		AuthorID:   res.AuthorID,
+	})
+
+	if result.RowsAffected == 0 {
+		return errors.New("Like Record data not found")
+	}
+	return nil
+}
+
+func (blogRepo blogRepo) DeleteBlog(id uuid.UUID) error {
+
+	var blogs models.Blog
+	result := blogRepo.Db.Model(&blogs).Delete(&blogs, id)
+	if result.RowsAffected == 0 {
+		return errors.New("Like Record data not found")
+	}
+	return nil
+}

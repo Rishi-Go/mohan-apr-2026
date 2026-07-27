@@ -10,23 +10,23 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-type LikeHandler struct {
-	Service service.LikeService
+type BlogHandler struct {
+	Service service.BlogService
 }
 
-func InitLikeHandler(svc service.LikeService) *LikeHandler {
-	return &LikeHandler{Service: svc}
+func InitBlogHandler(svc service.BlogService) *BlogHandler {
+	return &BlogHandler{Service: svc}
 }
 
-func (h *LikeHandler) InsertLike(Ctx fiber.Ctx) error {
+func (h *BlogHandler) InsertBlog(Ctx fiber.Ctx) error {
 
-	var res = dto.LikeRequest{}
+	var res = dto.BlogRequest{}
 
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err := h.Service.InsertLike(res)
+	err := h.Service.InsertBlog(res)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -40,13 +40,17 @@ func (h *LikeHandler) InsertLike(Ctx fiber.Ctx) error {
 	return nil
 }
 
-func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
+func (h *BlogHandler) GetBlog(Ctx fiber.Ctx) error {
 
-	like := Ctx.Query("like")
+	title := Ctx.Query("title")
 
-	uuidStr := Ctx.Query("userid")
+	categoryStr := Ctx.Query("category-id")
 
-	userid := uuid.FromStringOrNil(uuidStr)
+	categoryId := uuid.FromStringOrNil(categoryStr)
+
+	AuthorStr := Ctx.Query("author-id")
+
+	authorId := uuid.FromStringOrNil(AuthorStr)
 
 	page, err := strconv.Atoi(Ctx.Query("page"))
 
@@ -73,14 +77,14 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 	offset := (page - 1) * limit
 
-	result, Page, err := h.Service.GetLike(page, limit, offset, like, userid)
+	result, Page, err := h.Service.GetBlog(page, limit, offset, title, categoryId, authorId)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(&dto.LikeResponse{
-		Like:       result,
+	err = Ctx.JSON(&dto.BlogResponse{
+		Blog:       result,
 		Pagination: *Page,
 	})
 
@@ -92,18 +96,18 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 }
 
-func (h *LikeHandler) SelectLike(Ctx fiber.Ctx) error {
-
+func (h *BlogHandler) SelectBlog(Ctx fiber.Ctx) error {
+	
 	uuidStr := Ctx.Params("id")
 
-	LikeId, err := uuid.FromString(uuidStr)
+	BlogId, err := uuid.FromString(uuidStr)
 
 	if err != nil {
 
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	ID, err := h.Service.SelectLike(LikeId)
+	ID, err := h.Service.SelectBlog(BlogId)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -115,48 +119,46 @@ func (h *LikeHandler) SelectLike(Ctx fiber.Ctx) error {
 	}
 	return nil
 }
-
-func (h *LikeHandler) UpdateLike(Ctx fiber.Ctx) error {
+func (h *BlogHandler) UpdateBlog(Ctx fiber.Ctx) error {
 
 	uuidStr := Ctx.Params("id")
 
-	LikeId, err := uuid.FromString(uuidStr)
+	BlogId, err := uuid.FromString(uuidStr)
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	var res = dto.LikeRequest{}
+	var res = dto.BlogRequest{}
 
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = h.Service.UpdateLike(res, LikeId)
+	err = h.Service.UpdateBlog(res, BlogId)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: LikeId})
+	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: BlogId})
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
 }
-
-func (h *LikeHandler) DeleteLike(Ctx fiber.Ctx) error {
+func (h *BlogHandler) DeleteBlog(Ctx fiber.Ctx) error {
 
 	uuidStr := Ctx.Params("id")
 
-	LikeId, err := uuid.FromString(uuidStr)
+	BlogId, err := uuid.FromString(uuidStr)
 	if err != nil {
 		return  Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	err = h.Service.DeleteLike(LikeId)
+	err = h.Service.DeleteBlog(BlogId)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: LikeId })
+	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: BlogId })
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

@@ -10,23 +10,23 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-type LikeHandler struct {
-	Service service.LikeService
+type CommentHandler struct {
+	Service service.CommentService
 }
 
-func InitLikeHandler(svc service.LikeService) *LikeHandler {
-	return &LikeHandler{Service: svc}
+func InitCommentHandler(svc service.CommentService) *CommentHandler {
+	return &CommentHandler{Service: svc}
 }
 
-func (h *LikeHandler) InsertLike(Ctx fiber.Ctx) error {
+func (h *CommentHandler) InsertComment(Ctx fiber.Ctx) error {
 
-	var res = dto.LikeRequest{}
+	var res = dto.CommentRequest{}
 
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err := h.Service.InsertLike(res)
+	err := h.Service.InsertComment(res)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -40,13 +40,17 @@ func (h *LikeHandler) InsertLike(Ctx fiber.Ctx) error {
 	return nil
 }
 
-func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
+func (h *CommentHandler) GetComment(Ctx fiber.Ctx) error {
 
-	like := Ctx.Query("like")
+	comment := Ctx.Query("comment")
 
-	uuidStr := Ctx.Query("userid")
+	UserStr := Ctx.Query("user-id")
 
-	userid := uuid.FromStringOrNil(uuidStr)
+	userid := uuid.FromStringOrNil(UserStr)
+
+	blogStr := Ctx.Query("blog-id")
+
+	blogid := uuid.FromStringOrNil(blogStr)
 
 	page, err := strconv.Atoi(Ctx.Query("page"))
 
@@ -62,6 +66,7 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 	if limit > 99 || limit < 0 {
 
 		return Ctx.Status(http.StatusInternalServerError).JSON(dto.ErrorResponse{Message: "Limit should be with in 1 - 99", StatusCode: http.StatusInternalServerError})
+
 	} else if limit == 0 {
 
 		limit = 10
@@ -73,14 +78,15 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 	offset := (page - 1) * limit
 
-	result, Page, err := h.Service.GetLike(page, limit, offset, like, userid)
+	result, Page, err := h.Service.GetComment(page, limit, offset, comment, userid, blogid)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+
 	}
 
-	err = Ctx.JSON(&dto.LikeResponse{
-		Like:       result,
+	err = Ctx.JSON(&dto.CommentResponse{
+		Comments:   result,
 		Pagination: *Page,
 	})
 
@@ -92,18 +98,18 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 }
 
-func (h *LikeHandler) SelectLike(Ctx fiber.Ctx) error {
+func (h *CommentHandler) SelectComment(Ctx fiber.Ctx) error {
 
 	uuidStr := Ctx.Params("id")
 
-	LikeId, err := uuid.FromString(uuidStr)
+	CommentId, err := uuid.FromString(uuidStr)
 
 	if err != nil {
 
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	ID, err := h.Service.SelectLike(LikeId)
+	ID, err := h.Service.SelectComment(CommentId)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -116,47 +122,47 @@ func (h *LikeHandler) SelectLike(Ctx fiber.Ctx) error {
 	return nil
 }
 
-func (h *LikeHandler) UpdateLike(Ctx fiber.Ctx) error {
-
+func (h *CommentHandler) UpdateComment(Ctx fiber.Ctx) error {
 	uuidStr := Ctx.Params("id")
 
-	LikeId, err := uuid.FromString(uuidStr)
+	CommentId, err := uuid.FromString(uuidStr)
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	var res = dto.LikeRequest{}
+	var res = dto.CommentRequest{}
 
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = h.Service.UpdateLike(res, LikeId)
+	err = h.Service.UpdateComment(res, CommentId)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: LikeId})
+	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: CommentId})
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
 }
 
-func (h *LikeHandler) DeleteLike(Ctx fiber.Ctx) error {
+func (h *CommentHandler) DeleteComment(Ctx fiber.Ctx) error {
 
 	uuidStr := Ctx.Params("id")
 
-	LikeId, err := uuid.FromString(uuidStr)
+	CommentId, err := uuid.FromString(uuidStr)
 	if err != nil {
 		return  Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	err = h.Service.DeleteLike(LikeId)
+	err = h.Service.DeleteComment(CommentId)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: LikeId })
+	
+	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: CommentId })
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
