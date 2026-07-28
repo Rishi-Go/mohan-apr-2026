@@ -5,6 +5,7 @@ go 1.26.3
 require (
 	github.com/gofiber/fiber/v3 v3.4.0
 	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.53.0
 	gorm.io/driver/postgres v1.6.0

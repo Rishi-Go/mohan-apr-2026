@@ -2,10 +2,12 @@ package service
 
 import (
 	"blog_post/internals/dto"
+	"blog_post/internals/middleware"
 	"blog_post/internals/repository"
 	"blog_post/pkg/models"
 
 	"github.com/gofrs/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService interface {
@@ -14,6 +16,8 @@ type AuthService interface {
 	SelectUser(id uuid.UUID) (models.BlogUsers, error)
 	UpdateUser(res dto.SignUpRequest, id uuid.UUID) error
 	DeleteUser(id uuid.UUID) error
+
+	LogInUser(res dto.LogInRequest) (string, error)
 }
 
 type authService struct {
@@ -39,6 +43,22 @@ func (auth authService) SelectUser(id uuid.UUID) (models.BlogUsers, error) {
 func (auth authService) UpdateUser(res dto.SignUpRequest, id uuid.UUID) error {
 	return auth.Repo.UpdateUser(res, id)
 }
-func (auth authService)DeleteUser(id uuid.UUID) error{
+func (auth authService) DeleteUser(id uuid.UUID) error {
 	return auth.Repo.DeleteUser(id)
+}
+
+func (auth authService) LogInUser(res dto.LogInRequest) (string, error) {
+
+	users, err := auth.Repo.LogInUser(res)
+
+	err = bcrypt.CompareHashAndPassword([]byte(users.PasswordHash), []byte(res.Password))
+	if err != nil {
+		return "", err
+	}
+
+	TokenStr, err := middleware.GenerateToken(res,users)
+	if err != nil {
+		return "", err
+	}
+	return TokenStr, nil
 }

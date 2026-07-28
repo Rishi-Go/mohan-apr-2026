@@ -5,6 +5,7 @@ import (
 	"blog_post/internals/service"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
@@ -28,7 +29,6 @@ func (h *AuthHandler) InsertUser(Ctx fiber.Ctx) error {
 
 	err := h.Service.InsertUser(res)
 	if err != nil {
-
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
@@ -106,7 +106,7 @@ func (h *AuthHandler) SelectUser(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err =Ctx.JSON(ID)
+	err = Ctx.JSON(ID)
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -147,7 +147,7 @@ func (h *AuthHandler) DeleteUser(Ctx fiber.Ctx) error {
 
 	UserId, err := uuid.FromString(uuidStr)
 	if err != nil {
-		return  Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
 	err = h.Service.DeleteUser(UserId)
@@ -158,5 +158,42 @@ func (h *AuthHandler) DeleteUser(Ctx fiber.Ctx) error {
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
+	return nil
+}
+
+func (h *AuthHandler) LogInUser(Ctx fiber.Ctx) error {
+
+	var res dto.LogInRequest
+
+	if err := Ctx.Bind().Body(&res); err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	tokenStr, err := h.Service.LogInUser(res)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	cookie := new(fiber.Cookie)
+
+	cookie.Name = "auth_token"
+	cookie.Value = tokenStr
+	cookie.Expires = time.Now().Add(15 * 24 * time.Hour)
+	cookie.HTTPOnly = true
+	cookie.Secure = false
+	cookie.SameSite = "Strict"
+
+	Ctx.Cookie(cookie)
+
+	err = Ctx.JSON(dto.TokenMessage{Message: "Token cookie set successfully", Token: tokenStr})
+	if err != nil {
+		return Ctx.Status(http.StatusUnauthorized).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusUnauthorized})
+	}
+
+	return nil
+}
+
+func (h *AuthHandler) Validate(Ctx fiber.Ctx) error {
+	Ctx.JSON(dto.ResponseMessage{Message: "logged in"})
 	return nil
 }

@@ -22,3 +22,8 @@ type Pagination struct {
 	Total  int `json:"total"`
 	Offset int `json:"offset" gorm:"size:99"`
 }
+
+type TokenMessage struct{
+	Message string `json:"message"`
+	Token string `json:"token"`
+}

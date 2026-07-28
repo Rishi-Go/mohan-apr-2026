@@ -16,6 +16,8 @@ type AuthRepo interface {
 	SelectUser(id uuid.UUID) (models.BlogUsers, error)
 	UpdateUser(res dto.SignUpRequest, id uuid.UUID) error
 	DeleteUser(id uuid.UUID) error
+
+	LogInUser(res dto.LogInRequest) (models.BlogUsers, error)
 }
 
 type authRepo struct {
@@ -37,6 +39,7 @@ func (auth authRepo) InsertUser(res dto.SignUpRequest) error {
 		return err
 	}
 
+	 
 	password_hash := string(passwordHash)
 
 	row := models.BlogUsers{
@@ -133,4 +136,16 @@ func (auth authRepo) DeleteUser(id uuid.UUID) error {
 		return errors.New("Users Record data not found")
 	}
 	return nil
+}
+
+func (auth authRepo) LogInUser(res dto.LogInRequest) (models.BlogUsers, error) {
+
+	var users models.BlogUsers
+
+	result := auth.Db.First(&users, "user_name = ?", res.UserName)
+	if result.RowsAffected == 0 {
+		return models.BlogUsers{}, errors.New("Invalid UserName or Password")
+	}
+
+	return users, nil
 }
