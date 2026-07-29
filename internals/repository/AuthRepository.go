@@ -39,7 +39,6 @@ func (auth authRepo) InsertUser(res dto.SignUpRequest) error {
 		return err
 	}
 
-	 
 	password_hash := string(passwordHash)
 
 	row := models.BlogUsers{
@@ -49,6 +48,7 @@ func (auth authRepo) InsertUser(res dto.SignUpRequest) error {
 		UserName:     res.UserName,
 		PasswordHash: password_hash,
 		Email:        res.Email,
+		Role:         res.Role,
 	}
 
 	result := auth.Db.Create(&row)
@@ -73,19 +73,19 @@ func (auth authRepo) GetUser(page int, limit int, offset int, username string, e
 	}
 
 	if username != "" {
-		records := query.Where("user_name LIKE ?", "%"+username+"%").Session(&gorm.Session{})
+		records := query.Where("user_name LIKE ? AND Role != 'Admin'", "%"+username+"%").Session(&gorm.Session{})
 		if records.Error != nil {
 			return nil, nil, records.Error
 		}
 	}
 
 	if email != "" {
-		records := query.Where("email LIKE ?", "%"+email+"%").Session(&gorm.Session{})
+		records := query.Where("email LIKE ? AND Role != 'Admin'", "%"+email+"%").Session(&gorm.Session{})
 		if records.Error != nil {
 			return nil, nil, records.Error
 		}
 	}
-	result := query.Limit(limit).Offset(offset).Find(&users)
+	result := query.Where(" Role != 'Admin'").Limit(limit).Offset(offset).Find(&users)
 
 	if result.RowsAffected == 0 {
 		return nil, nil, errors.New("Users Record data not found")

@@ -51,12 +51,16 @@ func (auth authService) LogInUser(res dto.LogInRequest) (string, error) {
 
 	users, err := auth.Repo.LogInUser(res)
 
+	if users.UserName != res.UserName {
+		return "Invalid Username or Password", err
+	}
+
 	err = bcrypt.CompareHashAndPassword([]byte(users.PasswordHash), []byte(res.Password))
 	if err != nil {
 		return "", err
 	}
 
-	TokenStr, err := middleware.GenerateToken(res,users)
+	TokenStr, err := middleware.GenerateToken(res, users)
 	if err != nil {
 		return "", err
 	}

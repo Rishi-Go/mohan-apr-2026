@@ -169,31 +169,24 @@ func (h *AuthHandler) LogInUser(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	tokenStr, err := h.Service.LogInUser(res)
+	tokenString, err := h.Service.LogInUser(res)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	cookie := new(fiber.Cookie)
+	Ctx.Cookie(&fiber.Cookie{
+		Expires:  time.Now().Add(15 * 24 * time.Hour),
+		Name:     "jwt_token",
+		Value:    tokenString,
+		HTTPOnly: true,
+		Secure:   false,
+		Path:     "/",
+	})
 
-	cookie.Name = "auth_token"
-	cookie.Value = tokenStr
-	cookie.Expires = time.Now().Add(15 * 24 * time.Hour)
-	cookie.HTTPOnly = true
-	cookie.Secure = false
-	cookie.SameSite = "Strict"
-
-	Ctx.Cookie(cookie)
-
-	err = Ctx.JSON(dto.TokenMessage{Message: "Token cookie set successfully", Token: tokenStr})
+	err = Ctx.JSON(dto.TokenMessage{Message: "Token cookie set successfully", Token: tokenString})
 	if err != nil {
 		return Ctx.Status(http.StatusUnauthorized).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusUnauthorized})
 	}
 
-	return nil
-}
-
-func (h *AuthHandler) Validate(Ctx fiber.Ctx) error {
-	Ctx.JSON(dto.ResponseMessage{Message: "logged in"})
 	return nil
 }

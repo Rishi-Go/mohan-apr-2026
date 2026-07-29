@@ -2,6 +2,7 @@ package router
 
 import (
 	"blog_post/internals/handler"
+	"blog_post/internals/middleware"
 	"blog_post/internals/repository"
 	"blog_post/internals/service"
 
@@ -17,9 +18,9 @@ func SetBlogRouter(app fiber.Router, Db *gorm.DB) {
 
 	blogRouter := app.Group("api/v1/blog")
 
-	blogRouter.Post("/insert", handle.InsertBlog)
-	blogRouter.Get("/get", handle.GetBlog)
-	blogRouter.Get("/get-id/:id", handle.SelectBlog)
-	blogRouter.Patch("/update/:id", handle.UpdateBlog)
-	blogRouter.Delete("/delete/:id", handle.DeleteBlog)
+	blogRouter.Post("/insert", middleware.VerifyToken, handle.InsertBlog)
+	blogRouter.Get("/get",middleware.VerifyToken, handle.GetBlog)
+	blogRouter.Get("/get-id/:id",middleware.VerifyToken, handle.SelectBlog)
+	blogRouter.Patch("/update/:id",middleware.VerifyToken, handle.UpdateBlog)
+	blogRouter.Delete("/delete/:id",middleware.VerifyToken, handle.DeleteBlog)
 }

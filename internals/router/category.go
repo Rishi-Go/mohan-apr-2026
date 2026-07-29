@@ -2,6 +2,7 @@ package router
 
 import (
 	"blog_post/internals/handler"
+	"blog_post/internals/middleware"
 	"blog_post/internals/repository"
 	"blog_post/internals/service"
 
@@ -17,10 +18,10 @@ func SetCategoryRouter(app fiber.Router, Db *gorm.DB) {
 
 	categoryRouter := app.Group("api/v1/category")
 
-	categoryRouter.Post("/insert", handle.InsertCategory)
-	categoryRouter.Get("/get",handle.GetCategory)
-	categoryRouter.Get("/get-id/:id",handle.SelectCategory)
-	categoryRouter.Patch("/update/:id", handle.UpdateCategory)
-	categoryRouter.Delete("/delete/:id",handle.DeleteCategory)
-	
+	categoryRouter.Post("/insert", middleware.VerifyToken, handle.InsertCategory)//only admin
+	categoryRouter.Get("/get",middleware.VerifyToken, handle.GetCategory)
+	categoryRouter.Get("/get-id/:id",middleware.VerifyToken, handle.SelectCategory)
+	categoryRouter.Patch("/update/:id",middleware.VerifyToken, handle.UpdateCategory)//only admin
+	categoryRouter.Delete("/delete/:id",middleware.VerifyToken, handle.DeleteCategory)//only admin
+
 }

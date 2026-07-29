@@ -8,6 +8,7 @@ type SignUpRequest struct {
 	UserName  string `json:"username" gorm:"size:100"`
 	Password  string `json:"password" gorm:"size:100"` // bcrypt
 	Email     string `json:"email"`
+	Role       string    `json:"role" validate:"required,oneof= Admin User"`
 }
 
 type UserResponse struct {

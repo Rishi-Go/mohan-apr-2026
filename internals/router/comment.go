@@ -2,6 +2,7 @@ package router
 
 import (
 	"blog_post/internals/handler"
+	"blog_post/internals/middleware"
 	"blog_post/internals/repository"
 	"blog_post/internals/service"
 
@@ -17,10 +18,10 @@ func SetCommentRouter(app fiber.Router, Db *gorm.DB) {
 
 	commentRouter := app.Group("api/v1/comment")
 
-	commentRouter.Post("/insert", handle.InsertComment)
-	commentRouter.Get("/get", handle.GetComment)
-	commentRouter.Get("/get-id/:id", handle.SelectComment)
-	commentRouter.Patch("/update/:id", handle.UpdateComment)
-	commentRouter.Delete("/delete/:id", handle.DeleteComment)
-	
+	commentRouter.Post("/insert", middleware.VerifyToken, handle.InsertComment)
+	commentRouter.Get("/get", middleware.VerifyToken, handle.GetComment)
+	commentRouter.Get("/get-id/:id", middleware.VerifyToken, handle.SelectComment)
+	commentRouter.Patch("/update/:id", middleware.VerifyToken, handle.UpdateComment)
+	commentRouter.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteComment)
+
 }

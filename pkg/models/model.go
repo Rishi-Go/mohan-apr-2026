@@ -14,7 +14,7 @@ type BlogUsers struct {
 	UserName     string         `json:"username" gorm:"size:100"`
 	PasswordHash string         `json:"password_hash" gorm:"size:100"`
 	Email        string         `json:"email"`
-	Role         string         `json:"role" validate:"required,oneof= Admin User"`
+	Role         string         `json:"role" validate:"required,oneof= Admin User" gorm:"default:'User' "`
 	CreatedAt    time.Time      `json:"created_at" gorm:"type:timestamptz;default:CURRENT_TIMESTAMP"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
