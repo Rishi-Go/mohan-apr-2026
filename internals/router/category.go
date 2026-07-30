@@ -18,10 +18,13 @@ func SetCategoryRouter(app fiber.Router, Db *gorm.DB) {
 
 	categoryRouter := app.Group("api/v1/category")
 
-	categoryRouter.Post("/insert", middleware.VerifyToken, handle.InsertCategory)//only admin
-	categoryRouter.Get("/get",middleware.VerifyToken, handle.GetCategory)
-	categoryRouter.Get("/get-id/:id",middleware.VerifyToken, handle.SelectCategory)
-	categoryRouter.Patch("/update/:id",middleware.VerifyToken, handle.UpdateCategory)//only admin
-	categoryRouter.Delete("/delete/:id",middleware.VerifyToken, handle.DeleteCategory)//only admin
+	adminGroup := app.Group("api/v1/category/admin")
+	adminGroup.Use(middleware.RoleAuthorizeMiddleware("Admin"))
+
+	adminGroup.Post("/insert", middleware.VerifyToken, handle.InsertCategory) //only admin
+	categoryRouter.Get("/get", middleware.VerifyToken, handle.GetCategory)
+	categoryRouter.Get("/get-id/:id", middleware.VerifyToken, handle.SelectCategory)
+	adminGroup.Patch("/update/:id", middleware.VerifyToken, handle.UpdateCategory)  //only admin
+	adminGroup.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteCategory) //only admin
 
 }

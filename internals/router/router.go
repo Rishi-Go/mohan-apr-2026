@@ -6,7 +6,6 @@ import (
 )
 
 func SetRouter(app fiber.Router, Db *gorm.DB) {
-
 	SetAuthRouter(app,Db)
 	SetCategoryRouter(app,Db)
 	SetLikeRouter(app,Db)

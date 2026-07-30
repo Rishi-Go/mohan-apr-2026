@@ -19,7 +19,7 @@ func SetReplyRouter(app fiber.Router, Db *gorm.DB) {
 
 	replyRouter.Post("/insert", handle.InsertReply)
 	replyRouter.Get("/get", handle.GetReply)
-	// replyRouter.Get("/get-id/:id", handle.)
-	// replyRouter.Patch("/update/:id", handle.UpdateLike)
-	// replyRouter.Delete("/delete/:id", handle.DeleteLike)
+	replyRouter.Get("/get-id/:id", handle.SelectReply)
+	replyRouter.Patch("/update/:id", handle.UpdateReply)
+	replyRouter.Delete("/delete/:id", handle.DeleteReply)
 }

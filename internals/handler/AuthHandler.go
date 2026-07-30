@@ -19,7 +19,7 @@ func InitAuthHandler(svc service.AuthService) *AuthHandler {
 	return &AuthHandler{Service: svc}
 }
 
-func (h *AuthHandler) InsertUser(Ctx fiber.Ctx) error {
+func (h *AuthHandler) SignUpUser(Ctx fiber.Ctx) error {
 
 	var res = dto.SignUpRequest{}
 
@@ -27,7 +27,7 @@ func (h *AuthHandler) InsertUser(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err := h.Service.InsertUser(res)
+	err := h.Service.SignUpUser(res)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
@@ -175,7 +175,7 @@ func (h *AuthHandler) LogInUser(Ctx fiber.Ctx) error {
 	}
 
 	Ctx.Cookie(&fiber.Cookie{
-		Expires:  time.Now().Add(15 * 24 * time.Hour),
+		Expires:  time.Now().Add(24* time.Hour),
 		Name:     "jwt_token",
 		Value:    tokenString,
 		HTTPOnly: true,

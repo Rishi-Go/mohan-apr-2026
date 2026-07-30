@@ -11,7 +11,7 @@ import (
 )
 
 type AuthRepo interface {
-	InsertUser(res dto.SignUpRequest) error
+	SignUpUser(res dto.SignUpRequest) error
 	GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error)
 	SelectUser(id uuid.UUID) (models.BlogUsers, error)
 	UpdateUser(res dto.SignUpRequest, id uuid.UUID) error
@@ -28,7 +28,7 @@ func InitAuthRepo(Db *gorm.DB) AuthRepo {
 	return &authRepo{Db}
 }
 
-func (auth authRepo) InsertUser(res dto.SignUpRequest) error {
+func (auth authRepo) SignUpUser(res dto.SignUpRequest) error {
 	auth_id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -146,6 +146,6 @@ func (auth authRepo) LogInUser(res dto.LogInRequest) (models.BlogUsers, error) {
 	if result.RowsAffected == 0 {
 		return models.BlogUsers{}, errors.New("Invalid UserName or Password")
 	}
-
+	
 	return users, nil
 }

@@ -119,6 +119,7 @@ func (h *BlogHandler) SelectBlog(Ctx fiber.Ctx) error {
 	}
 	return nil
 }
+
 func (h *BlogHandler) UpdateBlog(Ctx fiber.Ctx) error {
 
 	uuidStr := Ctx.Params("id")
@@ -145,6 +146,7 @@ func (h *BlogHandler) UpdateBlog(Ctx fiber.Ctx) error {
 	}
 	return nil
 }
+
 func (h *BlogHandler) DeleteBlog(Ctx fiber.Ctx) error {
 
 	uuidStr := Ctx.Params("id")

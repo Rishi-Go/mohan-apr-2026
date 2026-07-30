@@ -95,3 +95,73 @@ func (h *ReplyHandler) GetReply(Ctx fiber.Ctx) error {
 	return nil
 
 }
+func (h *ReplyHandler) SelectReply(Ctx fiber.Ctx) error {
+
+	uuidStr := Ctx.Params("id")
+
+	replyId, err := uuid.FromString(uuidStr)
+
+	if err != nil {
+
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+
+	ID, err := h.Service.SelectReply(replyId)
+	if err != nil {
+
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	err = Ctx.JSON(ID)
+	if err != nil {
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+	return nil
+}
+
+func (h *ReplyHandler) UpdateReply(Ctx fiber.Ctx) error {
+
+	uuidStr := Ctx.Params("id")
+
+	replyId, err := uuid.FromString(uuidStr)
+	if err != nil {
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+
+	var res = dto.ReplyRequest{}
+
+	if err := Ctx.Bind().Body(&res); err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	err = h.Service.UpdateReply(res, replyId)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: replyId})
+	if err != nil {
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+	return nil
+}
+
+func (h *ReplyHandler) DeleteReply(Ctx fiber.Ctx) error {
+
+	uuidStr := Ctx.Params("id")
+
+	ReplyId, err := uuid.FromString(uuidStr)
+	if err != nil {
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+
+	err = h.Service.DeleteReply(ReplyId)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: ReplyId})
+	if err != nil {
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+	return nil
+}

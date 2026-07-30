@@ -98,7 +98,6 @@ func (category categoryRepo) UpdateCategory(res dto.CategoryRequest, id uuid.UUI
 	return nil
 }
 
-
 func (category categoryRepo) DeleteCategory(id uuid.UUID) error {
 
 	var categorys models.Category

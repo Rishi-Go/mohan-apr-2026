@@ -11,7 +11,7 @@ import (
 )
 
 type AuthService interface {
-	InsertUser(res dto.SignUpRequest) error
+	SignUpUser(res dto.SignUpRequest) error
 	GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error)
 	SelectUser(id uuid.UUID) (models.BlogUsers, error)
 	UpdateUser(res dto.SignUpRequest, id uuid.UUID) error
@@ -28,8 +28,8 @@ func InitAuthService(Repo repository.AuthRepo) AuthService {
 	return &authService{Repo}
 }
 
-func (auth authService) InsertUser(res dto.SignUpRequest) error {
-	return auth.Repo.InsertUser(res)
+func (auth authService) SignUpUser(res dto.SignUpRequest) error {
+	return auth.Repo.SignUpUser(res)
 }
 
 func (auth authService) GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error) {
