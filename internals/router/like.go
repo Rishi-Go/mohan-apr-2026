@@ -18,9 +18,9 @@ func SetLikeRouter(app fiber.Router, Db *gorm.DB) {
 
 	likeRouter := app.Group("api/v1/like")
 
-	likeRouter.Post("/insert", middleware.VerifyToken, handle.InsertLike)
+	likeRouter.Post("/insert", middleware.VerifyToken, handle.InsertLike) //(specific user who create the blog)
 	likeRouter.Get("/get", middleware.VerifyToken, handle.GetLike)
 	likeRouter.Get("/get-id/:id", middleware.VerifyToken, handle.SelectLike)
-	likeRouter.Patch("/update/:id", middleware.VerifyToken, handle.UpdateLike)
-	likeRouter.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteLike)
+	likeRouter.Patch("/update/:id", middleware.VerifyToken, handle.UpdateLike) //(specific user who create the blog)
+	likeRouter.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteLike) //(specific user who create the blog) // not needed
 }

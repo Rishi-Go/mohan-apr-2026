@@ -14,7 +14,8 @@ type BlogRepo interface {
 	GetBlog(page int, limit int, offset int, title string, categoryId uuid.UUID, authorId uuid.UUID) ([]models.Blog, *dto.Pagination, error)
 	SelectBlog(id uuid.UUID) (models.Blog, error)
 	UpdateBlog(res dto.BlogRequest, id uuid.UUID) error
-	DeleteBlog(id uuid.UUID) error
+	DeleteBlog(id uuid.UUID, authorID uuid.UUID,role string ) error
+	GetBlogAuthorID(id uuid.UUID) (uuid.UUID, error)
 }
 
 type blogRepo struct {
@@ -39,7 +40,6 @@ func (blogRepo blogRepo) InsertBlog(res dto.BlogRequest) error {
 		CategoryId: res.CategoryId,
 		AuthorID:   res.AuthorID,
 	}
-
 	result := blogRepo.Db.Create(&row)
 	err = result.Error
 	if err != nil {
@@ -69,9 +69,9 @@ func (blogRepo blogRepo) GetBlog(page int, limit int, offset int, title string, 
 	}
 
 	if categoryId != uuid.Nil {
-		record := query.Where("category_id = ?", categoryId).Session(&gorm.Session{})
-		if record.Error != nil {
-			return nil, nil, record.Error
+		records := query.Where("category_id = ?", categoryId).Session(&gorm.Session{})
+		if records.Error != nil {
+			return nil, nil, records.Error
 		}
 	}
 
@@ -113,17 +113,31 @@ func (blogRepo blogRepo) UpdateBlog(res dto.BlogRequest, id uuid.UUID) error {
 	})
 
 	if result.RowsAffected == 0 {
-		return errors.New("Like Record data not found")
+		return errors.New("Blog Record data not found")
 	}
 	return nil
 }
 
-func (blogRepo blogRepo) DeleteBlog(id uuid.UUID) error {
+func (blogRepo blogRepo) DeleteBlog(id uuid.UUID, authorID uuid.UUID,role string) error {
 
 	var blogs models.Blog
 	result := blogRepo.Db.Model(&blogs).Delete(&blogs, id)
 	if result.RowsAffected == 0 {
-		return errors.New("Like Record data not found")
+		return errors.New("Blog Record data not found")
 	}
 	return nil
+}
+
+func (blogRepo blogRepo) GetBlogAuthorID(id uuid.UUID) (uuid.UUID, error) {
+
+	var Blogs models.Blog
+
+	result := blogRepo.Db.First(&Blogs, "id =?", id)
+	if result.RowsAffected == 0 {
+		return uuid.Nil,errors.New("Blog Record data not found")
+	}
+
+	AuthorId := Blogs.AuthorID
+
+	return AuthorId, nil
 }

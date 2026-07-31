@@ -4,6 +4,7 @@ import (
 	"blog_post/internals/dto"
 	"blog_post/internals/repository"
 	"blog_post/pkg/models"
+	"errors"
 
 	"github.com/gofrs/uuid"
 )
@@ -29,17 +30,26 @@ func (commentService commentService) InsertComment(res dto.CommentRequest) error
 }
 
 func (commentService commentService) GetComment(page int, limit int, offset int, comment string, userid uuid.UUID, blogid uuid.UUID) ([]models.Comment, *dto.Pagination, error) {
-	return commentService.Repo.GetComment(page,limit,offset,comment,userid,blogid)
+	return commentService.Repo.GetComment(page, limit, offset, comment, userid, blogid)
 }
 
-func (commentService commentService)SelectComment(id uuid.UUID) (models.Comment, error){
+func (commentService commentService) SelectComment(id uuid.UUID) (models.Comment, error) {
 	return commentService.Repo.SelectComment(id)
 }
 
-func(commentService commentService)UpdateComment(res dto.CommentRequest, id uuid.UUID) error{
-	return commentService.Repo.UpdateComment(res,id)
+func (commentService commentService) UpdateComment(res dto.CommentRequest, id uuid.UUID) error {
+
+	UserID, err := commentService.Repo.GetCommentUserID(id)
+	if err != nil {
+		return err
+	}
+
+	if UserID != res.UserID {
+		return errors.New("Access Denied")
+	}
+	return commentService.Repo.UpdateComment(res, id)
 }
 
-func(commentService commentService)DeleteComment(id uuid.UUID) error{
+func (commentService commentService) DeleteComment(id uuid.UUID) error {
 	return commentService.Repo.DeleteComment(id)
 }

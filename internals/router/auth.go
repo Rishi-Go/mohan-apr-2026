@@ -21,8 +21,6 @@ func SetAuthRouter(app fiber.Router, Db *gorm.DB) {
 	adminGroup := app.Group("api/v1/auth/admin")
 	adminGroup.Use(middleware.RoleAuthorizeMiddleware("Admin"))
 
-
-
 	authRouter.Post("/signup", handle.SignUpUser)
 
 	authRouter.Post("/login", handle.LogInUser)

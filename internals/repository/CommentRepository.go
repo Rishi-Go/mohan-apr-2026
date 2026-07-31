@@ -15,6 +15,8 @@ type CommentRepo interface {
 	SelectComment(id uuid.UUID) (models.Comment, error)
 	UpdateComment(res dto.CommentRequest, id uuid.UUID) error
 	DeleteComment(id uuid.UUID) error
+
+	GetCommentUserID(id uuid.UUID) (uuid.UUID, error)
 }
 
 type commentRepo struct {
@@ -124,4 +126,18 @@ func (commentRepo commentRepo) DeleteComment(id uuid.UUID) error {
 		return errors.New("Like Record data not found")
 	}
 	return nil
+}
+
+func (commentRepo commentRepo) GetCommentUserID(id uuid.UUID) (uuid.UUID, error) {
+
+	var Comments models.Comment
+
+	result := commentRepo.Db.First(&Comments, "id =?", id)
+	if result.RowsAffected == 0 {
+		return uuid.Nil,errors.New("Blog Record data not found")
+	}
+
+	UserId := Comments.UserID
+
+	return UserId, nil
 }

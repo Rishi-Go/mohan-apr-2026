@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type BlogHandler struct {
@@ -22,11 +23,22 @@ func (h *BlogHandler) InsertBlog(Ctx fiber.Ctx) error {
 
 	var res = dto.BlogRequest{}
 
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	ID, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	res.AuthorID = ID
+
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err := h.Service.InsertBlog(res)
+	err = h.Service.InsertBlog(res)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -34,10 +46,10 @@ func (h *BlogHandler) InsertBlog(Ctx fiber.Ctx) error {
 
 	err = Ctx.JSON(dto.ResponseMessage{Message: "INSERTED SUCCESSFULLY"})
 	if err != nil {
-
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
+
 }
 
 func (h *BlogHandler) GetBlog(Ctx fiber.Ctx) error {
@@ -97,7 +109,7 @@ func (h *BlogHandler) GetBlog(Ctx fiber.Ctx) error {
 }
 
 func (h *BlogHandler) SelectBlog(Ctx fiber.Ctx) error {
-	
+
 	uuidStr := Ctx.Params("id")
 
 	BlogId, err := uuid.FromString(uuidStr)
@@ -131,6 +143,16 @@ func (h *BlogHandler) UpdateBlog(Ctx fiber.Ctx) error {
 
 	var res = dto.BlogRequest{}
 
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	ID, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+	res.AuthorID = ID
+
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
@@ -153,14 +175,26 @@ func (h *BlogHandler) DeleteBlog(Ctx fiber.Ctx) error {
 
 	BlogId, err := uuid.FromString(uuidStr)
 	if err != nil {
-		return  Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	err = h.Service.DeleteBlog(BlogId)
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	role := claims["role"].(string)
+
+	TokenAuthorID, err := uuid.FromString(userID)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: BlogId })
+
+	err = h.Service.DeleteBlog(BlogId, TokenAuthorID ,role)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: BlogId})
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

@@ -15,7 +15,7 @@ import (
 func GenerateToken(res dto.LogInRequest, users models.BlogUsers) (string, error) {
 
 	claims := jwt.MapClaims{
-		"sub":  users.ID,
+		"id":   users.ID,
 		"role": users.Role,
 		"exp":  time.Now().Add(time.Hour * 24).Unix(),
 	}
@@ -35,7 +35,7 @@ func VerifyToken(Ctx fiber.Ctx) error {
 	tokenString := Ctx.Cookies("jwt_token")
 
 	if tokenString == "" {
-		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing Authentication Token"})
+		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing Authentication Token", "StatusCode": fiber.StatusUnauthorized})
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -49,7 +49,7 @@ func VerifyToken(Ctx fiber.Ctx) error {
 	})
 
 	if err != nil || !token.Valid {
-		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid Token"})
+		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid Token", "StatusCode": fiber.StatusUnauthorized})
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
@@ -58,12 +58,12 @@ func VerifyToken(Ctx fiber.Ctx) error {
 	}
 
 	if float64(time.Now().Unix()) > claims["exp"].(float64) {
-		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token Expired"})
+		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token Expired", "StatusCode": fiber.StatusUnauthorized})
 	}
 	return Ctx.Next()
 }
 
-func RoleAuthorizeMiddleware(allowedRoles ...string) fiber.Handler {
+func RoleAuthorizeMiddleware(allowedRole string) fiber.Handler {
 	return func(Ctx fiber.Ctx) error {
 
 		TokenString := Ctx.Cookies("jwt_token")
@@ -79,24 +79,45 @@ func RoleAuthorizeMiddleware(allowedRoles ...string) fiber.Handler {
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok || !token.Valid {
-			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Invalid token claims"})
+			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Invalid token claims", "StatusCode": fiber.StatusUnauthorized})
 		}
 
 		userRole, exists := claims["role"].(string)
 		if !exists {
-			return Ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"Error": "Role claim not found in token"})
+			return Ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"Error": "Role claim not found in token", "StatusCode": fiber.StatusForbidden})
 		}
 
 		if userRole == "" {
 			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Unauthorized: No role cookie found", "StatusCode": fiber.StatusUnauthorized})
 		}
 
-		for _, role := range allowedRoles {
-			if userRole == role {
-				return Ctx.Next()
-			}
+		if userRole == allowedRole {
+			return Ctx.Next()
 		}
 
-		return Ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"Role": userRole,"Error": "Forbidden: Insufficient permissions", "StatusCode": fiber.StatusForbidden})
+		return Ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"Role": userRole, "Error": "Forbidden: Insufficient permissions", "StatusCode": fiber.StatusForbidden})
+	}
+}
+
+func AuthUserMiddleware() fiber.Handler {
+	return func(Ctx fiber.Ctx) error {
+
+		TokenString := Ctx.Cookies("jwt_token")
+		if TokenString == "" {
+			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Missing token cookie", "StatusCode": fiber.StatusUnauthorized})
+		}
+
+		token, err := jwt.Parse(TokenString, func(t *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("SECRET_KEY")), nil
+		})
+
+		if err != nil || !token.Valid {
+			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token", "StatusCode": fiber.StatusUnauthorized})
+		}
+
+		claims := token.Claims.(jwt.MapClaims)
+		Ctx.Locals("user_id", claims)
+
+		return Ctx.Next()
 	}
 }

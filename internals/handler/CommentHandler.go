@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type CommentHandler struct {
@@ -22,11 +23,22 @@ func (h *CommentHandler) InsertComment(Ctx fiber.Ctx) error {
 
 	var res = dto.CommentRequest{}
 
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	ID, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	res.UserID = ID
+
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err := h.Service.InsertComment(res)
+	err = h.Service.InsertComment(res)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -123,6 +135,7 @@ func (h *CommentHandler) SelectComment(Ctx fiber.Ctx) error {
 }
 
 func (h *CommentHandler) UpdateComment(Ctx fiber.Ctx) error {
+	
 	uuidStr := Ctx.Params("id")
 
 	CommentId, err := uuid.FromString(uuidStr)
@@ -131,6 +144,16 @@ func (h *CommentHandler) UpdateComment(Ctx fiber.Ctx) error {
 	}
 
 	var res = dto.CommentRequest{}
+
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	ID, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+	res.UserID = ID
 
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -154,15 +177,15 @@ func (h *CommentHandler) DeleteComment(Ctx fiber.Ctx) error {
 
 	CommentId, err := uuid.FromString(uuidStr)
 	if err != nil {
-		return  Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
 	err = h.Service.DeleteComment(CommentId)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
-	
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: CommentId })
+
+	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: CommentId})
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
