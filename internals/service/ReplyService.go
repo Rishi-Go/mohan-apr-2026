@@ -4,16 +4,17 @@ import (
 	"blog_post/internals/dto"
 	"blog_post/internals/repository"
 	"blog_post/pkg/models"
+	"errors"
 
 	"github.com/gofrs/uuid"
 )
 
 type ReplyService interface {
 	InsertReply(res dto.ReplyRequest) error
-	GetReply(page int, limit int, offset int, reply string, blogid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error)
+	GetReply(page int, limit int, offset int, reply string, commentid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error)
 	SelectReply(id uuid.UUID) (models.Reply, error)
 	UpdateReply(res dto.ReplyRequest, id uuid.UUID) error
-	DeleteReply(id uuid.UUID) error
+	DeleteReply(id uuid.UUID, userid uuid.UUID, role string) error 
 }
 
 type replyService struct {
@@ -28,18 +29,37 @@ func (replyService replyService) InsertReply(res dto.ReplyRequest) error {
 	return replyService.Repo.InsertReply(res)
 }
 
-func (replyService replyService) GetReply(page int, limit int, offset int, reply string, blogid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error) {
-	return replyService.Repo.GetReply(page, limit, offset, reply, blogid, userid)
+func (replyService replyService) GetReply(page int, limit int, offset int, reply string, commentid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error) {
+	return replyService.Repo.GetReply(page, limit, offset, reply, commentid, userid)
 }
 
 func (replyService replyService) SelectReply(id uuid.UUID) (models.Reply, error) {
 	return replyService.Repo.SelectReply(id)
 }
 
-func (replyService replyService) UpdateReply(res dto.ReplyRequest, id uuid.UUID) error { 
+func (replyService replyService) UpdateReply(res dto.ReplyRequest, id uuid.UUID) error {
+
+	UserID, err := replyService.Repo.GetReplyUserID(id)
+	if err != nil {
+		return err
+	}
+
+	if UserID != res.UserID {
+		return errors.New("Access Denied")
+	}
 	return replyService.Repo.UpdateReply(res, id)
 }
 
-func (replyService replyService) DeleteReply(id uuid.UUID) error {
+func (replyService replyService) DeleteReply(id uuid.UUID, userid uuid.UUID, role string) error {
+	
+	UserID, err := replyService.Repo.GetReplyUserID(id)
+	if err != nil {
+		return err
+	}
+
+	if UserID != userid && role != "Admin" {
+		return errors.New("Access Denied")
+	}
+
 	return replyService.Repo.DeleteReply(id)
 }

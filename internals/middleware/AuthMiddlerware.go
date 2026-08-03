@@ -32,7 +32,7 @@ func GenerateToken(res dto.LogInRequest, users models.BlogUsers) (string, error)
 
 func VerifyToken(Ctx fiber.Ctx) error {
 
-	tokenString := Ctx.Cookies("jwt_token")
+	tokenString := Ctx.Cookies("token_string")
 
 	if tokenString == "" {
 		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing Authentication Token", "StatusCode": fiber.StatusUnauthorized})
@@ -60,13 +60,15 @@ func VerifyToken(Ctx fiber.Ctx) error {
 	if float64(time.Now().Unix()) > claims["exp"].(float64) {
 		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token Expired", "StatusCode": fiber.StatusUnauthorized})
 	}
+
+	Ctx.Set("role", claims["role"].(string))
 	return Ctx.Next()
 }
 
 func RoleAuthorizeMiddleware(allowedRole string) fiber.Handler {
 	return func(Ctx fiber.Ctx) error {
 
-		TokenString := Ctx.Cookies("jwt_token")
+		TokenString := Ctx.Cookies("token_string")
 
 		token, _ := jwt.Parse(TokenString, func(token *jwt.Token) (interface{}, error) {
 
@@ -102,7 +104,7 @@ func RoleAuthorizeMiddleware(allowedRole string) fiber.Handler {
 func AuthUserMiddleware() fiber.Handler {
 	return func(Ctx fiber.Ctx) error {
 
-		TokenString := Ctx.Cookies("jwt_token")
+		TokenString := Ctx.Cookies("token_string")
 		if TokenString == "" {
 			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Missing token cookie", "StatusCode": fiber.StatusUnauthorized})
 		}

@@ -14,7 +14,7 @@ type CategoryRepo interface {
 	GetCategory(page int, limit int, offset int, name string) ([]models.Category, *dto.Pagination, error)
 	SelectCategory(id uuid.UUID) (models.Category, error)
 	UpdateCategory(res dto.CategoryRequest, id uuid.UUID) error
-	DeleteCategory(id uuid.UUID) error 
+	DeleteCategory(id uuid.UUID) error
 }
 
 type categoryRepo struct {
@@ -34,6 +34,7 @@ func (category categoryRepo) InsertCategory(res dto.CategoryRequest) error {
 	row := models.Category{
 		ID:           CategoryId,
 		CategoryName: res.CategoryName,
+		Description:  res.Description,
 	}
 
 	result := category.Db.Create(&row)
@@ -58,7 +59,7 @@ func (category categoryRepo) GetCategory(page int, limit int, offset int, name s
 	}
 
 	if name != "" {
-		records := query.Where("category_name LIKE ?", "%"+name+"%").Session(&gorm.Session{})
+		records := query.Where("category_name ILIKE ?", "%"+name+"%").Session(&gorm.Session{})
 		if records.Error != nil {
 			return nil, nil, records.Error
 		}
@@ -69,7 +70,7 @@ func (category categoryRepo) GetCategory(page int, limit int, offset int, name s
 	if result.RowsAffected == 0 {
 		return nil, nil, errors.New("Category Record data not found")
 	}
-	return categorys, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
+	return categorys, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
 }
 
 func (category categoryRepo) SelectCategory(id uuid.UUID) (models.Category, error) {
@@ -87,9 +88,9 @@ func (category categoryRepo) UpdateCategory(res dto.CategoryRequest, id uuid.UUI
 
 	var categorys models.Category
 
-
 	result := category.Db.Model(&categorys).Where("id = ?", id).Updates(models.Category{
 		CategoryName: res.CategoryName,
+		Description:  res.Description,
 	})
 
 	if result.RowsAffected == 0 {

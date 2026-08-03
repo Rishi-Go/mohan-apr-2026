@@ -11,10 +11,11 @@ import (
 
 type LikeRepo interface {
 	InsertLike(res dto.LikeRequest) error
-	GetLike(page int, limit int, offset int, like string, user_id uuid.UUID) ([]models.Like, *dto.Pagination, error)
+	GetLike(page int, limit int, offset int, like string, user_id uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error)
 	SelectLike(id uuid.UUID) (models.Like, error)
-	UpdateLike(res dto.LikeRequest, id uuid.UUID) error
 	DeleteLike(id uuid.UUID) error
+
+	GetLikeUserID(id uuid.UUID) (uuid.UUID, error)
 }
 
 type likeRepo struct {
@@ -36,6 +37,7 @@ func (likeRepo likeRepo) InsertLike(res dto.LikeRequest) error {
 		ID:           LikeId,
 		LikeResponse: res.LikeResponse,
 		UserID:       res.UserID,
+		BlogID:       res.BlogID,
 	}
 
 	result := likeRepo.Db.Create(&row)
@@ -46,7 +48,7 @@ func (likeRepo likeRepo) InsertLike(res dto.LikeRequest) error {
 	return nil
 }
 
-func (likeRepo likeRepo) GetLike(page int, limit int, offset int, like string, userid uuid.UUID) ([]models.Like, *dto.Pagination, error) {
+func (likeRepo likeRepo) GetLike(page int, limit int, offset int, like string, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error) {
 
 	var likes []models.Like
 
@@ -73,12 +75,19 @@ func (likeRepo likeRepo) GetLike(page int, limit int, offset int, like string, u
 		}
 	}
 
+	if blogid != uuid.Nil {
+		record := query.Where("blog_id = ?", blogid).Session(&gorm.Session{})
+		if record.Error != nil {
+			return nil, nil, record.Error
+		}
+	}
+
 	result := query.Limit(limit).Offset(offset).Find(&likes)
 
 	if result.RowsAffected == 0 {
 		return nil, nil, errors.New("Like Record data not found")
 	}
-	return likes, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
+	return likes, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
 }
 
 func (likeRepo likeRepo) SelectLike(id uuid.UUID) (models.Like, error) {
@@ -92,21 +101,6 @@ func (likeRepo likeRepo) SelectLike(id uuid.UUID) (models.Like, error) {
 	return likes, nil
 }
 
-func (likeRepo likeRepo) UpdateLike(res dto.LikeRequest, id uuid.UUID) error {
-
-	var likes models.Like
-
-	result := likeRepo.Db.Model(&likes).Where("id = ?", id).Updates(models.Like{
-		LikeResponse: res.LikeResponse,
-		UserID: res.UserID,
-	})
-
-	if result.RowsAffected == 0 {
-		return errors.New("Like Record data not found")
-	}
-	return nil
-}
-
 func (likeRepo likeRepo) DeleteLike(id uuid.UUID) error {
 
 	var likes models.Like
@@ -115,4 +109,18 @@ func (likeRepo likeRepo) DeleteLike(id uuid.UUID) error {
 		return errors.New("Like Record data not found")
 	}
 	return nil
+}
+
+func (likeRepo likeRepo) GetLikeUserID(id uuid.UUID) (uuid.UUID, error) {
+
+	var likes models.Like
+
+	result := likeRepo.Db.First(&likes, "id =?", id)
+	if result.RowsAffected == 0 {
+		return uuid.Nil, errors.New("Reply Record data not found")
+	}
+
+	UserId := likes.UserID
+
+	return UserId, nil
 }

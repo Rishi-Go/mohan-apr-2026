@@ -14,7 +14,7 @@ type CommentRepo interface {
 	GetComment(page int, limit int, offset int, comment string, userid uuid.UUID, blogid uuid.UUID) ([]models.Comment, *dto.Pagination, error)
 	SelectComment(id uuid.UUID) (models.Comment, error)
 	UpdateComment(res dto.CommentRequest, id uuid.UUID) error
-	DeleteComment(id uuid.UUID) error
+	DeleteComment(id uuid.UUID,  userid uuid.UUID, role string) error
 
 	GetCommentUserID(id uuid.UUID) (uuid.UUID, error)
 }
@@ -88,7 +88,7 @@ func (commentRepo commentRepo) GetComment(page int, limit int, offset int, comme
 	if result.RowsAffected == 0 {
 		return nil, nil, errors.New("Comment Record data not found")
 	}
-	return comments, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
+	return comments, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
 }
 
 func (commentRepo commentRepo) SelectComment(id uuid.UUID) (models.Comment, error) {
@@ -118,7 +118,7 @@ func (commentRepo commentRepo) UpdateComment(res dto.CommentRequest, id uuid.UUI
 	return nil
 }
 
-func (commentRepo commentRepo) DeleteComment(id uuid.UUID) error {
+func (commentRepo commentRepo) DeleteComment(id uuid.UUID, userid uuid.UUID, role string) error {
 
 	var comments models.Comment
 	result := commentRepo.Db.Model(&comments).Delete(&comments, id)
@@ -134,7 +134,7 @@ func (commentRepo commentRepo) GetCommentUserID(id uuid.UUID) (uuid.UUID, error)
 
 	result := commentRepo.Db.First(&Comments, "id =?", id)
 	if result.RowsAffected == 0 {
-		return uuid.Nil,errors.New("Blog Record data not found")
+		return uuid.Nil,errors.New("Comments Record data not found")
 	}
 
 	UserId := Comments.UserID

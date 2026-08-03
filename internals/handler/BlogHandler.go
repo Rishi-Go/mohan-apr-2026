@@ -44,7 +44,7 @@ func (h *BlogHandler) InsertBlog(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(dto.ResponseMessage{Message: "INSERTED SUCCESSFULLY"})
+	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message": "Blog Created successfully", "StatusCode": fiber.StatusCreated})
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

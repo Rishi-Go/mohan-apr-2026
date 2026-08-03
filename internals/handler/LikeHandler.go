@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type LikeHandler struct {
@@ -22,17 +23,27 @@ func (h *LikeHandler) InsertLike(Ctx fiber.Ctx) error {
 
 	var res = dto.LikeRequest{}
 
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	userid, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+	res.UserID = userid
+
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err := h.Service.InsertLike(res)
+	err = h.Service.InsertLike(res)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(dto.ResponseMessage{Message: "INSERTED SUCCESSFULLY"})
+	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message": "Liked successfully", "StatusCode": fiber.StatusCreated})
 	if err != nil {
 
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -44,9 +55,13 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 	like := Ctx.Query("like")
 
-	uuidStr := Ctx.Query("userid")
+	userStr := Ctx.Query("user-id")
 
-	userid := uuid.FromStringOrNil(uuidStr)
+	userid := uuid.FromStringOrNil(userStr)
+
+	blogStr := Ctx.Query("blog-id")
+
+	blogid := uuid.FromStringOrNil(blogStr)
 
 	page, err := strconv.Atoi(Ctx.Query("page"))
 
@@ -73,7 +88,7 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 	offset := (page - 1) * limit
 
-	result, Page, err := h.Service.GetLike(page, limit, offset, like, userid)
+	result, Page, err := h.Service.GetLike(page, limit, offset, like, userid, blogid)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -116,47 +131,29 @@ func (h *LikeHandler) SelectLike(Ctx fiber.Ctx) error {
 	return nil
 }
 
-func (h *LikeHandler) UpdateLike(Ctx fiber.Ctx) error {
-
-	uuidStr := Ctx.Params("id")
-
-	LikeId, err := uuid.FromString(uuidStr)
-	if err != nil {
-		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
-	}
-
-	var res = dto.LikeRequest{}
-
-	if err := Ctx.Bind().Body(&res); err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
-	}
-
-	err = h.Service.UpdateLike(res, LikeId)
-	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
-	}
-
-	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: LikeId})
-	if err != nil {
-		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
-	}
-	return nil
-}
-
 func (h *LikeHandler) DeleteLike(Ctx fiber.Ctx) error {
 
 	uuidStr := Ctx.Params("id")
 
 	LikeId, err := uuid.FromString(uuidStr)
 	if err != nil {
-		return  Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
 
-	err = h.Service.DeleteLike(LikeId)
+	userID := claims["id"].(string)
+	role := claims["role"].(string)
+
+	LoginUser, err := uuid.FromString(userID)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: LikeId })
+
+	err = h.Service.DeleteLike(LikeId ,LoginUser,role)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: LikeId})
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

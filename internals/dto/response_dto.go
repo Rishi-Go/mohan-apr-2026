@@ -9,6 +9,7 @@ type ResponseMessage struct {
 type Response struct {
 	Message string    `json:"message"`
 	ID      uuid.UUID `json:"id"`
+	Data    any       `json:"data 	"`
 }
 
 type ErrorResponse struct {
@@ -17,13 +18,12 @@ type ErrorResponse struct {
 }
 
 type Pagination struct {
-	Page   int `json:"page"`
-	Limit  int `json:"limit" gorm:"size:99"`
-	Total  int `json:"total"`
-	Offset int `json:"offset" gorm:"size:99"`
+	Page  int `json:"page"`
+	Limit int `json:"limit" gorm:"size:99"`
+	Total int `json:"total"`
 }
 
-type TokenMessage struct{
+type TokenMessage struct {
 	Message string `json:"message"`
-	Token string `json:"token"`
+	Token   string `json:"token"`
 }

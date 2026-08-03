@@ -44,7 +44,7 @@ func (h *CommentHandler) InsertComment(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(dto.ResponseMessage{Message: "INSERTED SUCCESSFULLY"})
+	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message":"Comments created successfully", "StatusCode": fiber.StatusCreated})
 	if err != nil {
 
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -180,7 +180,18 @@ func (h *CommentHandler) DeleteComment(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	err = h.Service.DeleteComment(CommentId)
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	role := claims["role"].(string)
+
+	LoginUser, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	err = h.Service.DeleteComment(CommentId, LoginUser, role)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}

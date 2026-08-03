@@ -3,12 +3,12 @@ package dto
 import "blog_post/pkg/models"
 
 type SignUpRequest struct {
-	FirstName string `json:"firstname" gorm:"size:100"`
-	LastName  string `json:"lastname" gorm:"size:100"`
-	UserName  string `json:"username" gorm:"size:100"`
-	Password  string `json:"password" gorm:"size:100"` // bcrypt
-	Email     string `json:"email"`
-	Role       string    `json:"role" validate:"required,oneof= Admin User"`
+	FirstName string `json:"firstname"  validate:"required,min=3"`
+	LastName  string `json:"lastname" validate:"required,min=1"`
+	UserName  string `json:"username" validate:"required,min=3,max=20" gorm:"unique;not null"`
+	Password  string `json:"password" validate:"required,min=6" gorm:"not null"`
+	Email     string `json:"email" validate:"required,email" gorm:"unique;not null"`
+	Role      string `json:"role"`
 }
 
 type UserResponse struct {

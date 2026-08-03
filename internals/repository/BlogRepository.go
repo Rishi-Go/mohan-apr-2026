@@ -87,7 +87,7 @@ func (blogRepo blogRepo) GetBlog(page int, limit int, offset int, title string, 
 	if result.RowsAffected == 0 {
 		return nil, nil, errors.New("Blog Record data not found")
 	}
-	return blogs, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
+	return blogs, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
 }
 
 func (blogRepo blogRepo) SelectBlog(id uuid.UUID) (models.Blog, error) {

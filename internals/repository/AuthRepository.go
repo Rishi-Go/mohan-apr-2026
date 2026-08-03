@@ -14,10 +14,12 @@ type AuthRepo interface {
 	SignUpUser(res dto.SignUpRequest) error
 	GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error)
 	SelectUser(id uuid.UUID) (models.BlogUsers, error)
-	UpdateUser(res dto.SignUpRequest, id uuid.UUID) error
-	DeleteUser(id uuid.UUID) error
+	UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid.UUID, role string) error
+	DeleteUser(id uuid.UUID, userid uuid.UUID, role string) error
 
 	LogInUser(res dto.LogInRequest) (models.BlogUsers, error)
+
+	GetBlogUserID(id uuid.UUID) (uuid.UUID, error)
 }
 
 type authRepo struct {
@@ -29,6 +31,9 @@ func InitAuthRepo(Db *gorm.DB) AuthRepo {
 }
 
 func (auth authRepo) SignUpUser(res dto.SignUpRequest) error {
+
+	var users []models.BlogUsers
+
 	auth_id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -37,6 +42,13 @@ func (auth authRepo) SignUpUser(res dto.SignUpRequest) error {
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(res.Password), 12)
 	if err != nil {
 		return err
+	}
+
+	var existingCount int64
+	auth.Db.Model(&users).Where("user_name = ?", res.UserName).Count(&existingCount)
+
+	if existingCount > 0 {
+		return errors.New("Username is already taken")
 	}
 
 	password_hash := string(passwordHash)
@@ -90,7 +102,7 @@ func (auth authRepo) GetUser(page int, limit int, offset int, username string, e
 	if result.RowsAffected == 0 {
 		return nil, nil, errors.New("Users Record data not found")
 	}
-	return users, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
+	return users, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
 }
 
 func (auth authRepo) SelectUser(id uuid.UUID) (models.BlogUsers, error) {
@@ -104,7 +116,7 @@ func (auth authRepo) SelectUser(id uuid.UUID) (models.BlogUsers, error) {
 	return users, nil
 }
 
-func (auth authRepo) UpdateUser(res dto.SignUpRequest, id uuid.UUID) error {
+func (auth authRepo) UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid.UUID, role string) error {
 
 	var users models.BlogUsers
 
@@ -129,7 +141,7 @@ func (auth authRepo) UpdateUser(res dto.SignUpRequest, id uuid.UUID) error {
 	return nil
 }
 
-func (auth authRepo) DeleteUser(id uuid.UUID) error {
+func (auth authRepo) DeleteUser(id uuid.UUID, userid uuid.UUID, role string) error {
 	var users models.BlogUsers
 	result := auth.Db.Model(&users).Delete(&users, id)
 	if result.RowsAffected == 0 {
@@ -146,6 +158,20 @@ func (auth authRepo) LogInUser(res dto.LogInRequest) (models.BlogUsers, error) {
 	if result.RowsAffected == 0 {
 		return models.BlogUsers{}, errors.New("Invalid UserName or Password")
 	}
-	
+
 	return users, nil
+}
+
+func (auth authRepo) GetBlogUserID(id uuid.UUID) (uuid.UUID, error) {
+
+	var BlogUsers models.BlogUsers
+
+	result := auth.Db.First(&BlogUsers, "id =?", id)
+	if result.RowsAffected == 0 {
+		return uuid.Nil, errors.New("Blog Record data not found")
+	}
+
+	UserId := BlogUsers.ID
+
+	return UserId, nil
 }

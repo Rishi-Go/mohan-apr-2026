@@ -14,7 +14,7 @@ type CommentService interface {
 	GetComment(page int, limit int, offset int, comment string, userid uuid.UUID, blogid uuid.UUID) ([]models.Comment, *dto.Pagination, error)
 	SelectComment(id uuid.UUID) (models.Comment, error)
 	UpdateComment(res dto.CommentRequest, id uuid.UUID) error
-	DeleteComment(id uuid.UUID) error
+	DeleteComment(id uuid.UUID, userid uuid.UUID, role string) error
 }
 
 type commentService struct {
@@ -50,6 +50,15 @@ func (commentService commentService) UpdateComment(res dto.CommentRequest, id uu
 	return commentService.Repo.UpdateComment(res, id)
 }
 
-func (commentService commentService) DeleteComment(id uuid.UUID) error {
-	return commentService.Repo.DeleteComment(id)
+func (commentService commentService) DeleteComment(id uuid.UUID, userid uuid.UUID, role string) error {
+
+	UserID, err := commentService.Repo.GetCommentUserID(id)
+	if err != nil {
+		return err
+	}
+
+	if UserID != userid && role != "Admin" {
+		return errors.New("Access Denied")
+	}
+	return commentService.Repo.DeleteComment(id, userid, role)
 }

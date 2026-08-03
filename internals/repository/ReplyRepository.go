@@ -11,10 +11,12 @@ import (
 
 type ReplyRepo interface {
 	InsertReply(res dto.ReplyRequest) error
-	GetReply(page int, limit int, offset int, reply string, blogid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error)
-	SelectReply(id uuid.UUID) (models.Reply, error) 
+	GetReply(page int, limit int, offset int, reply string, commentid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error)
+	SelectReply(id uuid.UUID) (models.Reply, error)
 	UpdateReply(res dto.ReplyRequest, id uuid.UUID) error
 	DeleteReply(id uuid.UUID) error
+
+	GetReplyUserID(id uuid.UUID) (uuid.UUID, error)
 }
 
 type replyRepo struct {
@@ -33,10 +35,10 @@ func (replyRepo replyRepo) InsertReply(res dto.ReplyRequest) error {
 	}
 
 	row := models.Reply{
-		ID:     ReplyId,
-		Reply:  res.Reply,
-		BlogID: res.BlogID,
-		UserID: res.UserID,
+		ID:        ReplyId,
+		Reply:     res.Reply,
+		CommentID: res.CommentID,
+		UserID:  res.UserID,
 	}
 
 	result := replyRepo.Db.Create(&row)
@@ -47,7 +49,7 @@ func (replyRepo replyRepo) InsertReply(res dto.ReplyRequest) error {
 	return nil
 }
 
-func (replyRepo replyRepo) GetReply(page int, limit int, offset int, reply string, blogid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error) {
+func (replyRepo replyRepo) GetReply(page int, limit int, offset int, reply string, commentid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error) {
 
 	var replys []models.Reply
 
@@ -67,8 +69,8 @@ func (replyRepo replyRepo) GetReply(page int, limit int, offset int, reply strin
 		}
 	}
 
-	if blogid != uuid.Nil {
-		record := query.Where("blog_id = ?", blogid).Session(&gorm.Session{})
+	if commentid != uuid.Nil {
+		record := query.Where("comment_id = ?", commentid).Session(&gorm.Session{})
 		if record.Error != nil {
 			return nil, nil, record.Error
 		}
@@ -86,7 +88,7 @@ func (replyRepo replyRepo) GetReply(page int, limit int, offset int, reply strin
 	if result.RowsAffected == 0 {
 		return nil, nil, errors.New("Like Record data not found")
 	}
-	return replys, &dto.Pagination{Page: page, Limit: limit, Total: int(count), Offset: offset}, nil
+	return replys, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
 }
 
 func (replyRepo replyRepo) SelectReply(id uuid.UUID) (models.Reply, error) {
@@ -105,9 +107,9 @@ func (replyRepo replyRepo) UpdateReply(res dto.ReplyRequest, id uuid.UUID) error
 	var replys models.Reply
 
 	result := replyRepo.Db.Model(&replys).Where("id = ?", id).Updates(models.Reply{
-		Reply: res.Reply,
-		BlogID: res.BlogID,
-		UserID: res.UserID,
+		Reply:     res.Reply,
+		CommentID: res.CommentID,
+		UserID:    res.UserID,
 	})
 
 	if result.RowsAffected == 0 {
@@ -124,4 +126,18 @@ func (replyRepo replyRepo) DeleteReply(id uuid.UUID) error {
 		return errors.New("Reply Record data not found")
 	}
 	return nil
+}
+
+func (replyRepo replyRepo) GetReplyUserID(id uuid.UUID) (uuid.UUID, error) {
+
+	var Replys models.Reply
+
+	result := replyRepo.Db.First(&Replys, "id =?", id)
+	if result.RowsAffected == 0 {
+		return uuid.Nil, errors.New("Reply Record data not found")
+	}
+
+	UserId := Replys.UserID
+
+	return UserId, nil
 }

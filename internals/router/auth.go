@@ -18,6 +18,9 @@ func SetAuthRouter(app fiber.Router, Db *gorm.DB) {
 
 	authRouter := app.Group("api/v1/auth")
 
+	userGroup := app.Group("api/v1/auth/user")
+	userGroup.Use(middleware.AuthUserMiddleware())
+
 	adminGroup := app.Group("api/v1/auth/admin")
 	adminGroup.Use(middleware.RoleAuthorizeMiddleware("Admin"))
 
@@ -27,7 +30,7 @@ func SetAuthRouter(app fiber.Router, Db *gorm.DB) {
 
 	adminGroup.Get("/get", middleware.VerifyToken, handle.GetUser)
 	adminGroup.Get("/get-id/:id", middleware.VerifyToken, handle.SelectUser)
-	adminGroup.Patch("/update/:id", middleware.VerifyToken, handle.UpdateUser)
-	adminGroup.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteUser)
+	userGroup.Patch("/update/:id", middleware.VerifyToken, handle.UpdateUser)
+	userGroup.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteUser)
 
 }

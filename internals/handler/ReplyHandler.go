@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type ReplyHandler struct {
@@ -22,17 +23,26 @@ func (h *ReplyHandler) InsertReply(Ctx fiber.Ctx) error {
 
 	var res = dto.ReplyRequest{}
 
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	author_id, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+	res.UserID = author_id
+
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err := h.Service.InsertReply(res)
+	err = h.Service.InsertReply(res)
 	if err != nil {
-
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(dto.ResponseMessage{Message: "INSERTED SUCCESSFULLY"})
+	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message": "Reply created successfully", "StatusCode": fiber.StatusCreated})
 	if err != nil {
 
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -48,9 +58,9 @@ func (h *ReplyHandler) GetReply(Ctx fiber.Ctx) error {
 
 	userid := uuid.FromStringOrNil(userStr)
 
-	blogStr := Ctx.Query("blog-id")
+	commentStr := Ctx.Query("comment-id")
 
-	blogid := uuid.FromStringOrNil(blogStr)
+	commentid := uuid.FromStringOrNil(commentStr)
 
 	page, err := strconv.Atoi(Ctx.Query("page"))
 
@@ -77,7 +87,7 @@ func (h *ReplyHandler) GetReply(Ctx fiber.Ctx) error {
 
 	offset := (page - 1) * limit
 
-	result, Page, err := h.Service.GetReply(page, limit, offset, reply, blogid, userid)
+	result, Page, err := h.Service.GetReply(page, limit, offset, reply, commentid, userid)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -130,6 +140,16 @@ func (h *ReplyHandler) UpdateReply(Ctx fiber.Ctx) error {
 
 	var res = dto.ReplyRequest{}
 
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	ID, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+	res.UserID = ID
+
 	if err := Ctx.Bind().Body(&res); err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
@@ -155,7 +175,18 @@ func (h *ReplyHandler) DeleteReply(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	err = h.Service.DeleteReply(ReplyId)
+	claims := Ctx.Locals("user_id").(jwt.MapClaims)
+
+	userID := claims["id"].(string)
+
+	role := claims["role"].(string)
+
+	LoginUser, err := uuid.FromString(userID)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	}
+
+	err = h.Service.DeleteReply(ReplyId ,LoginUser, role)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}

@@ -18,13 +18,15 @@ func SetCommentRouter(app fiber.Router, Db *gorm.DB) {
 
 	commentRouter := app.Group("api/v1/comment")
 
-	
 	userGroup := app.Group("api/v1/comment/user")
-	userGroup.Use(middleware.RoleAuthorizeMiddleware("User"),middleware.AuthUserMiddleware())
+	userGroup.Use(middleware.RoleAuthorizeMiddleware("User"), middleware.AuthUserMiddleware())
+
+	adminGroup := app.Group("api/v1/comment/admin")
+	adminGroup.Use(middleware.AuthUserMiddleware())
 
 	userGroup.Post("/insert", middleware.VerifyToken, handle.InsertComment) //(only user)
-	commentRouter.Get("/get", middleware.VerifyToken, handle.GetComment)	
-	commentRouter.Get("/get-id/:id", middleware.VerifyToken, handle.SelectComment) 
-	userGroup.Patch("/update/:id", middleware.VerifyToken, handle.UpdateComment) // (only user)
-	commentRouter.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteComment) //(only user)
+	commentRouter.Get("/get", middleware.VerifyToken, handle.GetComment)
+	commentRouter.Get("/get-id/:id", middleware.VerifyToken, handle.SelectComment)
+	userGroup.Patch("/update/:id", middleware.VerifyToken, handle.UpdateComment)   // (only user)
+	adminGroup.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteComment) // Admin & User
 }

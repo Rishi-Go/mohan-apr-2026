@@ -11,7 +11,10 @@ import (
 )
 
 func main() {
+	// initialize configs
 	cfg := config.InitConfig()
+
+	// initialize DB
 	Db, err := db.InitDB(cfg)
 	if err != nil {
 		fmt.Println(err)

@@ -7,9 +7,9 @@ import (
 )
 
 type ReplyRequest struct {
-	Reply  string    `json:"reply" gorm:"size:500"`
-	BlogID uuid.UUID `json:"blog_id"`
-	UserID uuid.UUID `json:"user_id"`
+	Reply     string    `json:"reply" gorm:"size:500"`
+	CommentID uuid.UUID `json:"comment_id"`
+	UserID    uuid.UUID `json:"user_id"`
 }
 
 type ReplyResponse struct {
