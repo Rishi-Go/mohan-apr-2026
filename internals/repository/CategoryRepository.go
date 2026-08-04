@@ -10,7 +10,7 @@ import (
 )
 
 type CategoryRepo interface {
-	InsertCategory(res dto.CategoryRequest) error
+	InsertCategory(res dto.CategoryRequest) (models.Category, error)
 	GetCategory(page int, limit int, offset int, name string) ([]models.Category, *dto.Pagination, error)
 	SelectCategory(id uuid.UUID) (models.Category, error)
 	UpdateCategory(res dto.CategoryRequest, id uuid.UUID) error
@@ -25,10 +25,10 @@ func InitCategoryRepo(Db *gorm.DB) CategoryRepo {
 	return &categoryRepo{Db}
 }
 
-func (category categoryRepo) InsertCategory(res dto.CategoryRequest) error {
+func (category categoryRepo) InsertCategory(res dto.CategoryRequest) (models.Category, error) {
 	CategoryId, err := uuid.NewV7()
 	if err != nil {
-		return err
+		return models.Category{},err
 	}
 
 	row := models.Category{
@@ -40,9 +40,9 @@ func (category categoryRepo) InsertCategory(res dto.CategoryRequest) error {
 	result := category.Db.Create(&row)
 	err = result.Error
 	if err != nil {
-		return err
+		return models.Category{},err
 	}
-	return nil
+	return row,nil
 }
 
 func (category categoryRepo) GetCategory(page int, limit int, offset int, name string) ([]models.Category, *dto.Pagination, error) {

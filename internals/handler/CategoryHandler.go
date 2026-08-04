@@ -26,15 +26,21 @@ func (h *CategoryHandler) InsertCategory(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err := h.Service.InsertCategory(res)
+	result , err := h.Service.InsertCategory(res)
 	if err != nil {
+	return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: result})
 
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message":"Category created successfully", "StatusCode": fiber.StatusCreated})
-	if err != nil {
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Category register successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.CategoryInsertResponse{
+			Category:  result,
+		},
+	})
 
+	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
@@ -71,14 +77,26 @@ func (h *CategoryHandler) GetCategory(Ctx fiber.Ctx) error {
 
 	result, Page, err := h.Service.GetCategory(page, limit, offset, category_name)
 	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: result})
 
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(&dto.CategoryResponse{
-		Category:   result,
-		Pagination: *Page,
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Category details retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.CategoryResponse{
+			Category:  result,
+			Pagination: *Page,
+		},
 	})
+
+	// 	return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+	// }
+
+	// err = Ctx.JSON(&dto.CategoryResponse{
+	// 	Category:   result,
+	// 	Pagination: *Page,
+	// })
 
 	if err != nil {
 

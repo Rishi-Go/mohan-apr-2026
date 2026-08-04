@@ -9,7 +9,7 @@ import (
 )
 
 type CategoryService interface {
-	InsertCategory(res dto.CategoryRequest) error
+	InsertCategory(res dto.CategoryRequest) (models.Category, error)
 	GetCategory(page int, limit int, offset int, name string) ([]models.Category, *dto.Pagination, error)
 	SelectCategory(id uuid.UUID) (models.Category, error)
 	UpdateCategory(res dto.CategoryRequest, id uuid.UUID) error
@@ -24,7 +24,7 @@ func InitCategoryService(Repo repository.CategoryRepo) CategoryService {
 	return &categoryService{Repo}
 }
 
-func (category categoryService) InsertCategory(res dto.CategoryRequest) error {
+func (category categoryService) InsertCategory(res dto.CategoryRequest) (models.Category, error) {
 	return category.Repo.InsertCategory(res)
 }
 

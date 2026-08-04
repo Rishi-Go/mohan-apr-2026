@@ -32,17 +32,53 @@ func (h *AuthHandler) SignUpUser(Ctx fiber.Ctx) error {
 	}
 
 	if err := validate.Struct(&res); err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(fiber.Map{"Error": "Validation failed", "Details": err.Error(), "StatusCode": http.StatusBadRequest})
+
+		errs := err.(validator.ValidationErrors)
+		errMap := make(map[string]string)
+
+		for _, e := range errs {
+
+			var field string
+			switch e.StructField() {
+			case "FirstName":
+				field = "first_name"
+			case "LastName":
+				field = "last_name"
+			case "Password":
+				field = "password"
+			case "Email":
+				field = "email"
+			case "UserName":
+				field = "user_name"
+			}
+
+			switch e.Tag() {
+			case "required":
+				errMap[field] = "field is required"
+			case "email":
+				errMap[field] = "must be a valid email address"
+			case "min":
+				errMap[field] = "must be at least " + e.Param() + " characters long"
+			default:
+				errMap[field] = "is invalid"
+			}
+		}
+		return Ctx.Status(http.StatusBadRequest).JSON(fiber.Map{"Error": "Validation failed", "Details": errMap, "StatusCode": http.StatusBadRequest})
 	}
 
-	err := h.Service.SignUpUser(res)
+	result, err := h.Service.SignUpUser(res)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return Ctx.Status(http.StatusBadRequest).JSON(fiber.Map{"Error": "Validation failed", "Details": err.Error(), "StatusCode": http.StatusBadRequest}) 
 	}
 
-	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message": "User registered successfully", "StatusCode": fiber.StatusCreated})
+	err = Ctx.Status(fiber.StatusCreated).JSON(&dto.SuccessResponse{
+		Message:    "User registered successfully",
+		StatusCode: fiber.StatusCreated,
+		Data: &dto.BlogUserResponse{
+			BlogUsers: result,
+		},
+	})
 	if err != nil {
-
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
@@ -80,18 +116,21 @@ func (h *AuthHandler) GetUser(Ctx fiber.Ctx) error {
 
 	result, Page, err := h.Service.GetUser(page, limit, offset, username, email)
 	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: result})
 
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = Ctx.JSON(&dto.UserResponse{
-		BlogUsers:  result,
-		Pagination: *Page,
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "User details retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.UserResponse{
+			BlogUsers:  result,
+			Pagination: *Page,
+		},
 	})
 
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
 
@@ -110,11 +149,16 @@ func (h *AuthHandler) SelectUser(Ctx fiber.Ctx) error {
 
 	ID, err := h.Service.SelectUser(UserId)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: ID})
 	}
 
-	err = Ctx.JSON(ID)
+	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "User detail retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.BlogUserResponse{
+			BlogUsers: ID,
+		}})
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -149,10 +193,16 @@ func (h *AuthHandler) UpdateUser(Ctx fiber.Ctx) error {
 
 	err = h.Service.UpdateUser(res, UserId, LogInUser, role)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data : dto.Response{Message: "Failed to Update Record", ID: UserId }})
 	}
 
-	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: UserId})
+	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "User Updated successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.Response{
+			Message: "Successfully Updated Record", ID: UserId ,
+		}})
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -180,9 +230,14 @@ func (h *AuthHandler) DeleteUser(Ctx fiber.Ctx) error {
 
 	err = h.Service.DeleteUser(UserId, LogInUser, role)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data : dto.Response{Message: "Failed to Delete Record", ID: UserId }})
 	}
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: UserId})
+	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "User Deleted successfully",
+		StatusCode: fiber.StatusOK,
+		Data:&dto.Response{
+			Message: "Successfully deleted Record", ID: UserId ,
+		}})
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -204,14 +259,14 @@ func (h *AuthHandler) LogInUser(Ctx fiber.Ctx) error {
 
 	Ctx.Cookie(&fiber.Cookie{
 		Expires:  time.Now().Add(24 * time.Hour),
-		Name:     "token_string",
+		Name:     "auth_token",
 		Value:    tokenString,
 		HTTPOnly: true,
 		Secure:   false,
 		Path:     "/",
 	})
 
-	err = Ctx.JSON(dto.TokenMessage{Message: "Logged In Successfully", Token: tokenString})
+	err = Ctx.Status(http.StatusOK).JSON(dto.TokenMessage{Message: "Logged In Successfully", Token: tokenString, StatusCode: http.StatusOK})
 	if err != nil {
 		return Ctx.Status(http.StatusUnauthorized).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusUnauthorized})
 	}

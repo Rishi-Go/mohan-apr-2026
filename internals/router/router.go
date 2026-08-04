@@ -6,10 +6,14 @@ import (
 )
 
 func SetRouter(app fiber.Router, Db *gorm.DB) {
-	SetAuthRouter(app,Db)
-	SetCategoryRouter(app,Db)
+
+	api := app.Group("api/v1")
+
+	SetAuthRouter(api,Db)
+	SetCategoryRouter(api,Db)
 	SetLikeRouter(app,Db)
 	SetBlogRouter(app,Db)
 	SetCommentRouter(app,Db)
 	SetReplyRouter(app,Db)
+
 }

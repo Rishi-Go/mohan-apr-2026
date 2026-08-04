@@ -16,21 +16,24 @@ func SetAuthRouter(app fiber.Router, Db *gorm.DB) {
 	service := service.InitAuthService(repo)
 	handle := handler.InitAuthHandler(service)
 
-	authRouter := app.Group("api/v1/auth")
+	authRouter := app.Group("/auth")
+	authRouter.Use(middleware.VerifyToken)
 
-	userGroup := app.Group("api/v1/auth/user")
-	userGroup.Use(middleware.AuthUserMiddleware())
+	userGroup := app.Group("/user/auth")
+	userGroup.Use(middleware.VerifyToken, middleware.AuthUserMiddleware())
 
-	adminGroup := app.Group("api/v1/auth/admin")
-	adminGroup.Use(middleware.RoleAuthorizeMiddleware("Admin"))
+	adminGroup := app.Group("/admin/auth")
+	adminGroup.Use(middleware.VerifyToken, middleware.RoleAuthorizeMiddleware("Admin"))
+
+	// routes
 
 	authRouter.Post("/signup", handle.SignUpUser)
 
 	authRouter.Post("/login", handle.LogInUser)
 
-	adminGroup.Get("/get", middleware.VerifyToken, handle.GetUser)
-	adminGroup.Get("/get-id/:id", middleware.VerifyToken, handle.SelectUser)
-	userGroup.Patch("/update/:id", middleware.VerifyToken, handle.UpdateUser)
-	userGroup.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteUser)
+	adminGroup.Get("/get", handle.GetUser)
+	adminGroup.Get("/get-id/:id", handle.SelectUser)
+	userGroup.Patch("/update/:id", handle.UpdateUser)
+	userGroup.Delete("/delete/:id", handle.DeleteUser)
 
 }

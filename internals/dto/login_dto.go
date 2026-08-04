@@ -1,6 +1,6 @@
 package dto
 
 type LogInRequest struct {
-	UserName string `json:"username" gorm:"size:20"`
+	UserName string `json:"user_name" gorm:"size:20"`
 	Password string `json:"password" gorm:"size:100"`
 }

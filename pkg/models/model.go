@@ -7,14 +7,21 @@ import (
 	"gorm.io/gorm"
 )
 
+type UserRole string
+
+const (
+	RoleAdmin UserRole = "Admin"
+	RoleUser  UserRole = "User"
+)
+
 type BlogUsers struct {
 	ID           uuid.UUID      `json:"id" gorm:"type:uuid;default:gen_random_uuid();primarykey"`
-	FirstName    string         `json:"firstname" gorm:"size:100"`
-	LastName     string         `json:"lastname" gorm:"size:100"`
-	UserName     string         `json:"username" gorm:"size:100,unique"`
-	PasswordHash string         `json:"-" gorm:"size:100,unique"`
-	Email        string         `json:"email"`
-	Role         string         `json:"role" validate:"required,oneof= Admin User" gorm:"default:'User'"`
+	FirstName    string         `json:"first_name" gorm:"size:100"`
+	LastName     string         `json:"last_name" gorm:"size:100"`
+	UserName     string         `json:"user_name" gorm:"size:100,uniqueIndex"`
+	PasswordHash string         `json:"-" gorm:"size:100"`
+	Email        string         `json:"email" gorm:"size:100"`
+	Role         UserRole       `json:"role" validate:"required" gorm:"default:'User'"`
 	CreatedAt    time.Time      `json:"created_at" gorm:"type:timestamptz;default:CURRENT_TIMESTAMP"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
@@ -22,7 +29,7 @@ type BlogUsers struct {
 
 type Category struct {
 	ID           uuid.UUID      `json:"id" gorm:"type:uuid;default:gen_random_uuid();primarykey"`
-	CategoryName string         `json:"category_name" gorm:"size:100"`
+	CategoryName string         `json:"category_name" gorm:"size:100,uniqueIndex"`
 	Description  string         `json:"description" gorm:"size:500"`
 	CreatedAt    time.Time      `json:"created_at" gorm:"type:timestamptz;default:CURRENT_TIMESTAMP"`
 	UpdatedAt    time.Time      `json:"updated_at"`

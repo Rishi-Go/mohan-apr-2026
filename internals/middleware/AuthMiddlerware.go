@@ -32,10 +32,10 @@ func GenerateToken(res dto.LogInRequest, users models.BlogUsers) (string, error)
 
 func VerifyToken(Ctx fiber.Ctx) error {
 
-	tokenString := Ctx.Cookies("token_string")
+	tokenString := Ctx.Cookies("auth_token")
 
 	if tokenString == "" {
-		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing Authentication Token", "StatusCode": fiber.StatusUnauthorized})
+		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Missing Authentication Token", "StatusCode": fiber.StatusUnauthorized})
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -49,16 +49,16 @@ func VerifyToken(Ctx fiber.Ctx) error {
 	})
 
 	if err != nil || !token.Valid {
-		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid Token", "StatusCode": fiber.StatusUnauthorized})
+		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Invalid Token", "StatusCode": fiber.StatusUnauthorized})
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err})
+		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": err})
 	}
 
 	if float64(time.Now().Unix()) > claims["exp"].(float64) {
-		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token Expired", "StatusCode": fiber.StatusUnauthorized})
+		return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Token Expired", "StatusCode": fiber.StatusUnauthorized})
 	}
 
 	Ctx.Set("role", claims["role"].(string))
@@ -68,7 +68,7 @@ func VerifyToken(Ctx fiber.Ctx) error {
 func RoleAuthorizeMiddleware(allowedRole string) fiber.Handler {
 	return func(Ctx fiber.Ctx) error {
 
-		TokenString := Ctx.Cookies("token_string")
+		TokenString := Ctx.Cookies("auth_token")
 
 		token, _ := jwt.Parse(TokenString, func(token *jwt.Token) (interface{}, error) {
 
@@ -104,7 +104,7 @@ func RoleAuthorizeMiddleware(allowedRole string) fiber.Handler {
 func AuthUserMiddleware() fiber.Handler {
 	return func(Ctx fiber.Ctx) error {
 
-		TokenString := Ctx.Cookies("token_string")
+		TokenString := Ctx.Cookies("auth_token")
 		if TokenString == "" {
 			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Missing token cookie", "StatusCode": fiber.StatusUnauthorized})
 		}
@@ -114,7 +114,7 @@ func AuthUserMiddleware() fiber.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token", "StatusCode": fiber.StatusUnauthorized})
+			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Invalid token", "StatusCode": fiber.StatusUnauthorized})
 		}
 
 		claims := token.Claims.(jwt.MapClaims)

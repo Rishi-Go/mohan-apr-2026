@@ -9,7 +9,6 @@ type ResponseMessage struct {
 type Response struct {
 	Message string    `json:"message"`
 	ID      uuid.UUID `json:"id"`
-	Data    any       `json:"data 	"`
 }
 
 type ErrorResponse struct {
@@ -24,6 +23,13 @@ type Pagination struct {
 }
 
 type TokenMessage struct {
-	Message string `json:"message"`
-	Token   string `json:"token"`
+	Message    string `json:"message"`
+	StatusCode int    `json:"status_code"`
+	Token      string `json:"token"`
+}
+
+type SuccessResponse struct {
+	Message    string `json:"message"`
+	StatusCode int    `json:"status_code"`
+	Data       any    `json:"data "`
 }

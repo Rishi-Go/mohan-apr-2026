@@ -11,7 +11,8 @@ import (
 )
 
 type AuthRepo interface {
-	SignUpUser(res dto.SignUpRequest) error
+	SignUpUser(res dto.SignUpRequest) (models.BlogUsers, error)
+
 	GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error)
 	SelectUser(id uuid.UUID) (models.BlogUsers, error)
 	UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid.UUID, role string) error
@@ -30,25 +31,25 @@ func InitAuthRepo(Db *gorm.DB) AuthRepo {
 	return &authRepo{Db}
 }
 
-func (auth authRepo) SignUpUser(res dto.SignUpRequest) error {
+func (auth authRepo) SignUpUser(res dto.SignUpRequest) (models.BlogUsers, error) {
 
 	var users []models.BlogUsers
 
 	auth_id, err := uuid.NewV7()
 	if err != nil {
-		return err
+		return models.BlogUsers{}, err
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(res.Password), 12)
 	if err != nil {
-		return err
+		return models.BlogUsers{}, err
 	}
 
 	var existingCount int64
 	auth.Db.Model(&users).Where("user_name = ?", res.UserName).Count(&existingCount)
 
 	if existingCount > 0 {
-		return errors.New("Username is already taken")
+		return models.BlogUsers{}, errors.New("Username is already taken")
 	}
 
 	password_hash := string(passwordHash)
@@ -66,9 +67,9 @@ func (auth authRepo) SignUpUser(res dto.SignUpRequest) error {
 	result := auth.Db.Create(&row)
 	err = result.Error
 	if err != nil {
-		return err
+		return models.BlogUsers{}, err
 	}
-	return nil
+	return row, nil
 }
 
 func (auth authRepo) GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error) {
@@ -85,14 +86,14 @@ func (auth authRepo) GetUser(page int, limit int, offset int, username string, e
 	}
 
 	if username != "" {
-		records := query.Where("user_name LIKE ? AND Role != 'Admin'", "%"+username+"%").Session(&gorm.Session{})
+		records := query.Where("user_name ILIKE ? AND Role != 'Admin'", "%"+username+"%").Session(&gorm.Session{})
 		if records.Error != nil {
 			return nil, nil, records.Error
 		}
 	}
 
 	if email != "" {
-		records := query.Where("email LIKE ? AND Role != 'Admin'", "%"+email+"%").Session(&gorm.Session{})
+		records := query.Where("email ILIKE ? AND Role != 'Admin'", "%"+email+"%").Session(&gorm.Session{})
 		if records.Error != nil {
 			return nil, nil, records.Error
 		}
@@ -128,6 +129,7 @@ func (auth authRepo) UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid
 	password_hash := string(passwordHash)
 
 	result := auth.Db.Model(&users).Where("id = ?", id).Updates(models.BlogUsers{
+		ID:           id,
 		FirstName:    res.FirstName,
 		LastName:     res.LastName,
 		UserName:     res.UserName,
@@ -141,7 +143,7 @@ func (auth authRepo) UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid
 	return nil
 }
 
-func (auth authRepo) DeleteUser(id uuid.UUID, userid uuid.UUID, role string) error {
+func (auth authRepo) DeleteUser(id uuid.UUID, userid uuid.UUID, role string)  error {
 	var users models.BlogUsers
 	result := auth.Db.Model(&users).Delete(&users, id)
 	if result.RowsAffected == 0 {
@@ -168,7 +170,7 @@ func (auth authRepo) GetBlogUserID(id uuid.UUID) (uuid.UUID, error) {
 
 	result := auth.Db.First(&BlogUsers, "id =?", id)
 	if result.RowsAffected == 0 {
-		return uuid.Nil, errors.New("Blog Record data not found")
+		return uuid.Nil, errors.New("User Record data not found")
 	}
 
 	UserId := BlogUsers.ID

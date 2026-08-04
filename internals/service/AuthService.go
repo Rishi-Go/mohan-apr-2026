@@ -12,7 +12,8 @@ import (
 )
 
 type AuthService interface {
-	SignUpUser(res dto.SignUpRequest) error
+	SignUpUser(res dto.SignUpRequest) (models.BlogUsers, error)
+	
 	GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error)
 	SelectUser(id uuid.UUID) (models.BlogUsers, error)
 	UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid.UUID, role string) error
@@ -29,7 +30,7 @@ func InitAuthService(Repo repository.AuthRepo) AuthService {
 	return &authService{Repo}
 }
 
-func (auth authService) SignUpUser(res dto.SignUpRequest) error {
+func (auth authService) SignUpUser(res dto.SignUpRequest) (models.BlogUsers, error) {
 	return auth.Repo.SignUpUser(res)
 }
 
@@ -41,17 +42,18 @@ func (auth authService) SelectUser(id uuid.UUID) (models.BlogUsers, error) {
 	return auth.Repo.SelectUser(id)
 }
 
-func (auth authService) UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid.UUID, role string) error {
+func (auth authService) UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid.UUID, role string) error{
 	UserID, err := auth.Repo.GetBlogUserID(id)
 	if err != nil {
 		return err
 	}
 
 	if UserID != userid && role != "Admin" {
-		return errors.New("Access Denied")
+		return errors.New("Access Denied Only Admin or Owner")
 	}
 	return auth.Repo.UpdateUser(res, id, userid, role)
 }
+
 func (auth authService) DeleteUser(id uuid.UUID, userid uuid.UUID, role string) error {
 	UserID, err := auth.Repo.GetBlogUserID(id)
 	if err != nil {
@@ -59,7 +61,7 @@ func (auth authService) DeleteUser(id uuid.UUID, userid uuid.UUID, role string) 
 	}
 
 	if UserID != userid && role != "Admin" {
-		return errors.New("Access Denied")
+		return errors.New("Access Denied Only Admin or Owner")
 	}
 
 	return auth.Repo.DeleteUser(id, userid, role)

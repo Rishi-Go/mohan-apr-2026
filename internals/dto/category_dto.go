@@ -11,3 +11,6 @@ type CategoryResponse struct {
 	Category   []models.Category `json:"category"`
 	Pagination Pagination        `json:"pagination"`
 }
+type CategoryInsertResponse struct {
+	Category   models.Category `json:"category"`
+}
