@@ -1,40 +1,32 @@
 package logger
 
-import (
-	"log"
-	"os"
+// var Log *zap.Logger
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-)
+// func InitLogger() {
+// 	encoderConfig := zap.NewProductionEncoderConfig()
+// 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
-func ZapLogger() {
+// 	fileEncoder := zapcore.NewJSONEncoder(encoderConfig)
 
-	zapFile, err := os.OpenFile("zap_log_file.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer zapFile.Close()
+// 	consoleConfig := encoderConfig
+// 	consoleConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+// 	consoleEncoder := zapcore.NewConsoleEncoder(consoleConfig)
 
-	enconfig := zap.NewProductionEncoderConfig()
+// 	logFile, err := os.OpenFile("ZapLogger.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+// 	if err != nil {
+// 		panic("Failed to open log file: " + err.Error())
+// 	}
 
-	logger := zap.New(
-		zapcore.NewTee(
-			zapcore.NewCore(
-				zapcore.NewJSONEncoder(enconfig),
-				zapcore.Lock(zapFile),
-				zapcore.DebugLevel,
-			),
-			zapcore.NewCore(
-				zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-				zapcore.Lock(os.Stdout),
-				zapcore.DebugLevel,
-			),
-		),
-	)
+// 	fileWriter := zapcore.AddSync(logFile)
+// 	consoleWriter := zapcore.AddSync(os.Stdout)
 
-	logger.Debug("we in DEBUG mode")
-	logger.Info("we in INFO mode")
-	logger.Warn("we in WARN mode")
-	logger.Error("we in ERROR mode")
-}
+// 	defaultLevel := zap.NewAtomicLevelAt(zap.InfoLevel)
+
+// 	core := zapcore.NewTee(
+// 		zapcore.NewCore(fileEncoder, fileWriter, defaultLevel),
+// 		zapcore.NewCore(consoleEncoder, consoleWriter, defaultLevel),
+// 	)
+
+// 	Log = zap.New(core, zap.AddCaller())
+
+// }

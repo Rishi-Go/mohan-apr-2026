@@ -13,7 +13,7 @@ import (
 type AuthRepo interface {
 	SignUpUser(res dto.SignUpRequest) (models.BlogUsers, error)
 
-	GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error)
+	GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, int, error)
 	SelectUser(id uuid.UUID) (models.BlogUsers, error)
 	UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid.UUID, role string) error
 	DeleteUser(id uuid.UUID, userid uuid.UUID, role string) error
@@ -42,6 +42,7 @@ func (auth authRepo) SignUpUser(res dto.SignUpRequest) (models.BlogUsers, error)
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(res.Password), 12)
 	if err != nil {
+		// logger.Log.With(zap.String("Error:", err.Error()))
 		return models.BlogUsers{}, err
 	}
 
@@ -49,6 +50,7 @@ func (auth authRepo) SignUpUser(res dto.SignUpRequest) (models.BlogUsers, error)
 	auth.Db.Model(&users).Where("user_name = ?", res.UserName).Count(&existingCount)
 
 	if existingCount > 0 {
+		// logger.Log.With(zap.String("Error:", "Username is already taken"))
 		return models.BlogUsers{}, errors.New("Username is already taken")
 	}
 
@@ -67,12 +69,13 @@ func (auth authRepo) SignUpUser(res dto.SignUpRequest) (models.BlogUsers, error)
 	result := auth.Db.Create(&row)
 	err = result.Error
 	if err != nil {
+		// logger.Log.With(zap.String("Error:", err.Error()))
 		return models.BlogUsers{}, err
 	}
 	return row, nil
 }
 
-func (auth authRepo) GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error) {
+func (auth authRepo) GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, int, error) {
 
 	var users []models.BlogUsers
 
@@ -82,28 +85,32 @@ func (auth authRepo) GetUser(page int, limit int, offset int, username string, e
 
 	err := query.Count(&count).Error
 	if err != nil {
-		return nil, nil, err
+		// logger.Log.With(zap.String("Error:", err.Error()))
+		return []models.BlogUsers{}, 0, err
 	}
 
 	if username != "" {
 		records := query.Where("user_name ILIKE ? AND Role != 'Admin'", "%"+username+"%").Session(&gorm.Session{})
 		if records.Error != nil {
-			return nil, nil, records.Error
+			// logger.Log.Error("Error: Users Record data not found")
+			return []models.BlogUsers{}, 0, records.Error
 		}
 	}
 
 	if email != "" {
 		records := query.Where("email ILIKE ? AND Role != 'Admin'", "%"+email+"%").Session(&gorm.Session{})
 		if records.Error != nil {
-			return nil, nil, records.Error
+			// logger.Log.Error("Error: Users Record data not found")
+			return []models.BlogUsers{}, 0, records.Error
 		}
 	}
 	result := query.Where(" Role != 'Admin'").Limit(limit).Offset(offset).Find(&users)
 
 	if result.RowsAffected == 0 {
-		return nil, nil, errors.New("Users Record data not found")
+		// logger.Log.Error("Error: Users Record data not found")
+		return []models.BlogUsers{}, 0, errors.New("Users Record data not found")
 	}
-	return users, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
+	return users, int(count), nil
 }
 
 func (auth authRepo) SelectUser(id uuid.UUID) (models.BlogUsers, error) {
@@ -112,6 +119,7 @@ func (auth authRepo) SelectUser(id uuid.UUID) (models.BlogUsers, error) {
 
 	result := auth.Db.First(&users, "id =?", id)
 	if result.RowsAffected == 0 {
+		// logger.Log.Error("Error: Users Record data not found")
 		return models.BlogUsers{}, errors.New("Users Record data not found")
 	}
 	return users, nil
@@ -123,6 +131,7 @@ func (auth authRepo) UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(res.Password), 12)
 	if err != nil {
+		// logger.Log.With(zap.String("Error:", err.Error()))
 		return err
 	}
 
@@ -138,15 +147,19 @@ func (auth authRepo) UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid
 	})
 
 	if result.RowsAffected == 0 {
+		// logger.Log.Error("Error: Users Record data not found")
 		return errors.New("User Record data not found")
 	}
 	return nil
 }
 
-func (auth authRepo) DeleteUser(id uuid.UUID, userid uuid.UUID, role string)  error {
+func (auth authRepo) DeleteUser(id uuid.UUID, userid uuid.UUID, role string) error {
+
 	var users models.BlogUsers
+
 	result := auth.Db.Model(&users).Delete(&users, id)
 	if result.RowsAffected == 0 {
+		// logger.Log.Error("Error: Users Record data not found")
 		return errors.New("Users Record data not found")
 	}
 	return nil
@@ -158,6 +171,7 @@ func (auth authRepo) LogInUser(res dto.LogInRequest) (models.BlogUsers, error) {
 
 	result := auth.Db.First(&users, "user_name = ?", res.UserName)
 	if result.RowsAffected == 0 {
+		// logger.Log.Error("Error: Invalid UserName or Password")
 		return models.BlogUsers{}, errors.New("Invalid UserName or Password")
 	}
 
@@ -170,6 +184,7 @@ func (auth authRepo) GetBlogUserID(id uuid.UUID) (uuid.UUID, error) {
 
 	result := auth.Db.First(&BlogUsers, "id =?", id)
 	if result.RowsAffected == 0 {
+		// logger.Log.Error("Error: Users Record data not found")
 		return uuid.Nil, errors.New("User Record data not found")
 	}
 

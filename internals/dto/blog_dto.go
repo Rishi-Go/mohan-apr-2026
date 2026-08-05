@@ -17,3 +17,6 @@ type BlogResponse struct {
 	Blog       []models.Blog `json:"blog"`
 	Pagination Pagination    `json:"pagination"`
 }
+type BlogPostResponse struct {
+	Blog models.Blog `json:"blog"`
+}

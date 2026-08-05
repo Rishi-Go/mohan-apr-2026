@@ -11,6 +11,14 @@ import (
 )
 
 func main() {
+
+	//initializing Zaplogger
+	// logger.InitLogger()
+
+	// defer logger.Log.Sync()
+	// log.Fatal("Zap logger started successfully")
+	// logger.Log.Info("Zap Logger Initialized")
+
 	// initialize configs
 	cfg := config.InitConfig()
 

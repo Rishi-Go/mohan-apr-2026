@@ -11,8 +11,8 @@ func SetRouter(app fiber.Router, Db *gorm.DB) {
 
 	SetAuthRouter(api,Db)
 	SetCategoryRouter(api,Db)
-	SetLikeRouter(app,Db)
-	SetBlogRouter(app,Db)
+	SetLikeRouter(api,Db)
+	SetBlogRouter(api,Db)
 	SetCommentRouter(app,Db)
 	SetReplyRouter(app,Db)
 

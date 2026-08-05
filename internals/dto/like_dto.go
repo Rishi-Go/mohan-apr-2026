@@ -7,7 +7,7 @@ import (
 )
 
 type LikeRequest struct {
-	LikeResponse string    `json:"like_response" validate:"required,oneof= Yes No"`
+	LikeResponse bool   `json:"like_response"`
 	BlogID       uuid.UUID `json:"blog_id"`
 	UserID       uuid.UUID `json:"user_id"`
 }

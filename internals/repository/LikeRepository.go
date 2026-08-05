@@ -11,7 +11,7 @@ import (
 
 type LikeRepo interface {
 	InsertLike(res dto.LikeRequest) error
-	GetLike(page int, limit int, offset int, like string, user_id uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error)
+	GetLike(page int, limit int, offset int, islike bool, user_id uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error)
 	SelectLike(id uuid.UUID) (models.Like, error)
 	DeleteLike(id uuid.UUID) error
 
@@ -48,7 +48,7 @@ func (likeRepo likeRepo) InsertLike(res dto.LikeRequest) error {
 	return nil
 }
 
-func (likeRepo likeRepo) GetLike(page int, limit int, offset int, like string, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error) {
+func (likeRepo likeRepo) GetLike(page int, limit int, offset int, islike bool, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error) {
 
 	var likes []models.Like
 
@@ -61,8 +61,8 @@ func (likeRepo likeRepo) GetLike(page int, limit int, offset int, like string, u
 		return nil, nil, err
 	}
 
-	if like != "" {
-		records := query.Where("like_response LIKE ?", "%"+like+"%").Session(&gorm.Session{})
+	if islike != false{
+		records := query.Where("like_response = ?", islike).Session(&gorm.Session{})
 		if records.Error != nil {
 			return nil, nil, records.Error
 		}

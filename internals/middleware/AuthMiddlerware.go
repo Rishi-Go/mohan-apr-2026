@@ -65,7 +65,7 @@ func VerifyToken(Ctx fiber.Ctx) error {
 	return Ctx.Next()
 }
 
-func RoleAuthorizeMiddleware(allowedRole string) fiber.Handler {
+func RoleAuthorizeMiddleware(allowedRole ...string) fiber.Handler {
 	return func(Ctx fiber.Ctx) error {
 
 		TokenString := Ctx.Cookies("auth_token")
@@ -92,9 +92,11 @@ func RoleAuthorizeMiddleware(allowedRole string) fiber.Handler {
 		if userRole == "" {
 			return Ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"Error": "Unauthorized: No role cookie found", "StatusCode": fiber.StatusUnauthorized})
 		}
+		for _, role := range allowedRole {
 
-		if userRole == allowedRole {
-			return Ctx.Next()
+			if userRole == role {
+				return Ctx.Next()
+			}
 		}
 
 		return Ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"Role": userRole, "Error": "Forbidden: Insufficient permissions", "StatusCode": fiber.StatusForbidden})

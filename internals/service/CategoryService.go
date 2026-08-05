@@ -29,17 +29,22 @@ func (category categoryService) InsertCategory(res dto.CategoryRequest) (models.
 }
 
 func (category categoryService) GetCategory(page int, limit int, offset int, name string) ([]models.Category, *dto.Pagination, error) {
-	return category.Repo.GetCategory(page, limit, offset, name)
-}
+	result, count, err := category.Repo.GetCategory(page, limit, offset, name)
+	if err != nil {
+		// logger.Log.With(zap.String("Error:", err.Error()))
+		return []models.Category{}, nil, err
+	}
 
+	return result, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, err
+}
 func (category categoryService) SelectCategory(id uuid.UUID) (models.Category, error) {
-	return  category.Repo.SelectCategory(id)
+	return category.Repo.SelectCategory(id)
 }
 
 func (category categoryService) UpdateCategory(res dto.CategoryRequest, id uuid.UUID) error {
-	return  category.Repo.UpdateCategory(res,id)
+	return category.Repo.UpdateCategory(res, id)
 }
 
-func (category categoryService) DeleteCategory(id uuid.UUID) error{
+func (category categoryService) DeleteCategory(id uuid.UUID) error {
 	return category.Repo.DeleteCategory(id)
 }

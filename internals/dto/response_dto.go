@@ -16,6 +16,12 @@ type ErrorResponse struct {
 	StatusCode int    `json:"status_code"`
 }
 
+type ErrorMessage struct {
+	Message    string    `json:"message"`
+	StatusCode int       `json:"status_code"`
+	ID         uuid.UUID `json:"ID"`
+}
+
 type Pagination struct {
 	Page  int `json:"page"`
 	Limit int `json:"limit" gorm:"size:99"`

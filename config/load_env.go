@@ -29,6 +29,7 @@ func InitConfig() *Config {
 
 	err := godotenv.Load(".env")
 	if err != nil {
+		// logger.Log.Warn("Error Loading .env file")
 		log.Fatal("Error Loading .env file")
 	}
 

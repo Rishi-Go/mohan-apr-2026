@@ -54,6 +54,10 @@ func (h *LikeHandler) InsertLike(Ctx fiber.Ctx) error {
 func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 	like := Ctx.Query("like")
+	islike, err := strconv.ParseBool(like)
+	if err != nil {
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: "Conversion error", StatusCode: http.StatusBadRequest})
+	}
 
 	userStr := Ctx.Query("user-id")
 
@@ -88,7 +92,7 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 	offset := (page - 1) * limit
 
-	result, Page, err := h.Service.GetLike(page, limit, offset, like, userid, blogid)
+	result, Page, err := h.Service.GetLike(page, limit, offset, islike, userid, blogid)
 	if err != nil {
 
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -149,7 +153,7 @@ func (h *LikeHandler) DeleteLike(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = h.Service.DeleteLike(LikeId ,LoginUser,role)
+	err = h.Service.DeleteLike(LikeId, LoginUser, role)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}

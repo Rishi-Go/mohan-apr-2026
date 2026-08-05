@@ -11,7 +11,7 @@ import (
 
 type CategoryRepo interface {
 	InsertCategory(res dto.CategoryRequest) (models.Category, error)
-	GetCategory(page int, limit int, offset int, name string) ([]models.Category, *dto.Pagination, error)
+	GetCategory(page int, limit int, offset int, name string) ([]models.Category, int, error)
 	SelectCategory(id uuid.UUID) (models.Category, error)
 	UpdateCategory(res dto.CategoryRequest, id uuid.UUID) error
 	DeleteCategory(id uuid.UUID) error
@@ -45,7 +45,7 @@ func (category categoryRepo) InsertCategory(res dto.CategoryRequest) (models.Cat
 	return row,nil
 }
 
-func (category categoryRepo) GetCategory(page int, limit int, offset int, name string) ([]models.Category, *dto.Pagination, error) {
+func (category categoryRepo) GetCategory(page int, limit int, offset int, name string) ([]models.Category, int, error) {
 
 	var categorys []models.Category
 
@@ -55,22 +55,22 @@ func (category categoryRepo) GetCategory(page int, limit int, offset int, name s
 
 	err := query.Count(&count).Error
 	if err != nil {
-		return nil, nil, err
+		return []models.Category{}, 0, err
 	}
 
 	if name != "" {
 		records := query.Where("category_name ILIKE ?", "%"+name+"%").Session(&gorm.Session{})
 		if records.Error != nil {
-			return nil, nil, records.Error
+			return []models.Category{}, 0, records.Error
 		}
 	}
 
 	result := query.Limit(limit).Offset(offset).Find(&categorys)
 
 	if result.RowsAffected == 0 {
-		return nil, nil, errors.New("Category Record data not found")
+		return []models.Category{}, 0, errors.New("Category Record data not found")
 	}
-	return categorys, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
+	return categorys, int(count), nil
 }
 
 func (category categoryRepo) SelectCategory(id uuid.UUID) (models.Category, error) {

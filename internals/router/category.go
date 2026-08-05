@@ -23,10 +23,11 @@ func SetCategoryRouter(app fiber.Router, Db *gorm.DB) {
 	adminGroup.Use(middleware.RoleAuthorizeMiddleware("Admin"), middleware.VerifyToken)
 	
 	//routes
-
-	adminGroup.Post("/insert", handle.InsertCategory) //only admin
+	
 	categoryRouter.Get("/get", handle.GetCategory)
 	categoryRouter.Get("/get-id/:id", handle.SelectCategory)
+
+	adminGroup.Post("/insert", handle.InsertCategory) //only admin
 	adminGroup.Patch("/update/:id", handle.UpdateCategory)  //only admin
 	adminGroup.Delete("/delete/:id", handle.DeleteCategory) //only admin
 

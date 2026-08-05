@@ -14,3 +14,6 @@ type CategoryResponse struct {
 type CategoryInsertResponse struct {
 	Category   models.Category `json:"category"`
 }
+type CategoryInsertsResponse struct {
+	Category   []models.Category `json:"category"`
+}

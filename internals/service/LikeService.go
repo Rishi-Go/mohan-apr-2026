@@ -11,7 +11,7 @@ import (
 
 type LikeService interface {
 	InsertLike(res dto.LikeRequest) error
-	GetLike(page int, limit int, offset int, like string, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error)
+	GetLike(page int, limit int, offset int, islike bool, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error)
 	SelectLike(id uuid.UUID) (models.Like, error)
 	DeleteLike(id uuid.UUID, userid uuid.UUID, role string) error
 }
@@ -28,8 +28,8 @@ func (likeService likeService) InsertLike(res dto.LikeRequest) error {
 	return likeService.Repo.InsertLike(res)
 }
 
-func (likeService likeService) GetLike(page int, limit int, offset int, like string, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error) {
-	return likeService.Repo.GetLike(page, limit, offset, like, userid, blogid)
+func (likeService likeService) GetLike(page int, limit int, offset int, islike bool, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error) {
+	return likeService.Repo.GetLike(page, limit, offset, islike, userid, blogid)
 }
 
 func (likeService likeService) SelectLike(id uuid.UUID) (models.Like, error) {

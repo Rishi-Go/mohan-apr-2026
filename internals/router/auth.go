@@ -28,11 +28,11 @@ func SetAuthRouter(app fiber.Router, Db *gorm.DB) {
 	// routes
 
 	authRouter.Post("/signup", handle.SignUpUser)
-
 	authRouter.Post("/login", handle.LogInUser)
 
 	adminGroup.Get("/get", handle.GetUser)
 	adminGroup.Get("/get-id/:id", handle.SelectUser)
+	
 	userGroup.Patch("/update/:id", handle.UpdateUser)
 	userGroup.Delete("/delete/:id", handle.DeleteUser)
 

@@ -21,3 +21,6 @@ type UserResponse struct {
 type BlogUserResponse struct {
 	BlogUsers models.BlogUsers `json:"blog_users"`
 }
+type BlogUsersResponse struct {
+	BlogUsers []models.BlogUsers `json:"blog_users"`
+}

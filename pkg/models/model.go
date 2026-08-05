@@ -63,7 +63,7 @@ type Comment struct {
 
 type Like struct {
 	ID           uuid.UUID      `json:"id" gorm:"type:uuid;default:gen_random_uuid();primarykey"`
-	LikeResponse string         `json:"like_response" validate:"required,oneof= Yes No"`
+	LikeResponse bool         `json:"like_response"`
 	BlogID       uuid.UUID      `json:"blog_id"`
 	Blog         Blog           `json:"-" gorm:"foreignkey:BlogID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	UserID       uuid.UUID      `json:"user_id"`
