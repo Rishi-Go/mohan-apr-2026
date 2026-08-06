@@ -13,6 +13,14 @@ type CommentRequest struct {
 }
 
 type CommentResponse struct {
-	Comments       []models.Comment `json:"comments"`
+	Comments   []models.Comment `json:"comments"`
 	Pagination Pagination       `json:"pagination"`
+}
+
+type CommentInsertResponse struct {
+	Comments models.Comment `json:"comments"`
+}
+
+type CommentInsertResponses struct {
+	Comments []models.Comment `json:"comments"`
 }

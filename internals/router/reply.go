@@ -16,17 +16,17 @@ func SetReplyRouter(app fiber.Router, Db *gorm.DB) {
 	service := service.InitReplyService(repo)
 	handle := handler.InitReplyHandler(service)
 
-	replyRouter := app.Group("api/v1/reply")
+	replyRouter := app.Group("/reply")
+	replyRouter.Use(middleware.VerifyToken)
 
-	userGroup := app.Group("api/v1/reply/user")
-	userGroup.Use(middleware.RoleAuthorizeMiddleware("User"), middleware.AuthUserMiddleware())
+	userGroup := app.Group("/user/reply")
+	userGroup.Use(middleware.RoleAuthorizeMiddleware("User","Admin"), middleware.AuthUserMiddleware(), middleware.VerifyToken)
 
-	adminGroup := app.Group("api/v1/reply/admin")
-	adminGroup.Use(middleware.AuthUserMiddleware())
 
-	userGroup.Post("/insert", handle.InsertReply) //Author
+
+	userGroup.Post("/insert/:id", handle.InsertReply) //comment(owner)
 	replyRouter.Get("/get", handle.GetReply)
 	replyRouter.Get("/get-id/:id", handle.SelectReply)
 	userGroup.Patch("/update/:id", handle.UpdateReply) //Author
-	adminGroup.Delete("/delete/:id", handle.DeleteReply) //Author & Admin
+	userGroup.Delete("/delete/:id", handle.DeleteReply) //Author & Admin
 }

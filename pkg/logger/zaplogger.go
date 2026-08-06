@@ -1,32 +1,37 @@
 package logger
 
-// var Log *zap.Logger
+import (
+	"os"
 
-// func InitLogger() {
-// 	encoderConfig := zap.NewProductionEncoderConfig()
-// 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
 
-// 	fileEncoder := zapcore.NewJSONEncoder(encoderConfig)
+var Log *zap.Logger
 
-// 	consoleConfig := encoderConfig
-// 	consoleConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-// 	consoleEncoder := zapcore.NewConsoleEncoder(consoleConfig)
+func Init(env string) {
+	var config zap.Config
 
-// 	logFile, err := os.OpenFile("ZapLogger.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-// 	if err != nil {
-// 		panic("Failed to open log file: " + err.Error())
-// 	}
+	if env == "production" {
+		config = zap.NewProductionConfig()
+		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	} else {
+		config = zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
 
-// 	fileWriter := zapcore.AddSync(logFile)
-// 	consoleWriter := zapcore.AddSync(os.Stdout)
+	builtLogger, err := config.Build(zap.AddCallerSkip(0))
+	if err != nil {
+		println("Failed to initialize zap logger: " + err.Error())
+		os.Exit(1)
+	}
 
-// 	defaultLevel := zap.NewAtomicLevelAt(zap.InfoLevel)
+	Log = builtLogger
+	zap.ReplaceGlobals(Log)
+}
 
-// 	core := zapcore.NewTee(
-// 		zapcore.NewCore(fileEncoder, fileWriter, defaultLevel),
-// 		zapcore.NewCore(consoleEncoder, consoleWriter, defaultLevel),
-// 	)
-
-// 	Log = zap.New(core, zap.AddCaller())
-
-// }
+func Sync() {
+	if Log != nil {
+		_ = Log.Sync()
+	}
+}

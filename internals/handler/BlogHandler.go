@@ -3,12 +3,14 @@ package handler
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/service"
+	"blog_post/pkg/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 type BlogHandler struct {
@@ -35,11 +37,13 @@ func (h *BlogHandler) InsertBlog(Ctx fiber.Ctx) error {
 	res.AuthorID = ID
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	result, err := h.Service.InsertBlog(res)
 	if err != nil {
+		logger.Log.Error("Failed to Post Blog", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
@@ -50,6 +54,7 @@ func (h *BlogHandler) InsertBlog(Ctx fiber.Ctx) error {
 			Blog: result,
 		},
 	})
+	logger.Log.Info("Blog Posted successfully")
 
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -97,7 +102,8 @@ func (h *BlogHandler) GetBlog(Ctx fiber.Ctx) error {
 
 	result, Page, err := h.Service.GetBlog(page, limit, offset, title, categoryId, authorId)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to retreive Blog details", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.BlogPostResponses{Blog: result}})
 	}
 
 	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
@@ -108,6 +114,7 @@ func (h *BlogHandler) GetBlog(Ctx fiber.Ctx) error {
 			Pagination: *Page,
 		},
 	})
+	logger.Log.Info("Blog details retreived successfully")
 
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -123,22 +130,24 @@ func (h *BlogHandler) SelectBlog(Ctx fiber.Ctx) error {
 	BlogId, err := uuid.FromString(uuidStr)
 
 	if err != nil {
-
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
 	ID, err := h.Service.SelectBlog(BlogId)
 	if err != nil {
-		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorMessage{Message: err.Error(), StatusCode: http.StatusNotFound, ID:BlogId })
+		logger.Log.Error("Failed to retreive Blog detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorMessage{Message: err.Error(), StatusCode: http.StatusNotFound, ID: BlogId})
 	}
 
 	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
-		Message:    "Category details retreived successfully",
+		Message:    "Blog detail retreived successfully",
 		StatusCode: fiber.StatusOK,
 		Data: &dto.BlogPostResponse{
 			Blog: ID,
 		},
 	})
+	logger.Log.Info("Blog detail retreived successfully")
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -168,11 +177,13 @@ func (h *BlogHandler) UpdateBlog(Ctx fiber.Ctx) error {
 	res.AuthorID = ID
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	err = h.Service.UpdateBlog(res, BlogId, role)
 	if err != nil {
+		logger.Log.Error("Failed to Update Blog Record", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Update Blog Record", ID: BlogId}})
 	}
 
@@ -180,8 +191,9 @@ func (h *BlogHandler) UpdateBlog(Ctx fiber.Ctx) error {
 		Message:    "Blog Post Updated successfully",
 		StatusCode: fiber.StatusOK,
 		Data: &dto.Response{
-			Message: "Successfully Updated Record", ID:BlogId ,
+			Message: "Successfully Updated Record", ID: BlogId,
 		}})
+	logger.Log.Info("Blog Post Updated successfully")
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -205,11 +217,13 @@ func (h *BlogHandler) DeleteBlog(Ctx fiber.Ctx) error {
 
 	TokenAuthorID, err := uuid.FromString(userID)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	err = h.Service.DeleteBlog(BlogId, TokenAuthorID, role)
 	if err != nil {
+		logger.Log.Error("Failed to Delete Blog Record",zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Delete Blog Record", ID: BlogId}})
 	}
 
@@ -217,8 +231,10 @@ func (h *BlogHandler) DeleteBlog(Ctx fiber.Ctx) error {
 		Message:    "Blog Post Deleted successfully",
 		StatusCode: fiber.StatusOK,
 		Data: &dto.Response{
-			Message: "Successfully Deleted Record", ID:BlogId ,
+			Message: "Successfully Deleted Record", ID: BlogId,
 		}})
+	logger.Log.Info("Blog Post Deleted successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

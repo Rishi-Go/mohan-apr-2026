@@ -16,16 +16,15 @@ func SetLikeRouter(app fiber.Router, Db *gorm.DB) {
 	service := service.InitLikeService(repo)
 	handle := handler.InitLikeHandler(service)
 
-	likeRouter := app.Group("api/v1/like")
+	likeRouter := app.Group("/like")
+	likeRouter.Use(middleware.VerifyToken)
 
-	userGroup := app.Group("api/v1/like/user")
-	userGroup.Use(middleware.RoleAuthorizeMiddleware("User"), middleware.AuthUserMiddleware())
+	userGroup := app.Group("/user/like")
+	userGroup.Use(middleware.RoleAuthorizeMiddleware("User","Admin"), middleware.AuthUserMiddleware(), middleware.VerifyToken)
 
-	adminGroup := app.Group("api/v1/like/admin")
-	adminGroup.Use(middleware.AuthUserMiddleware())
 
-	userGroup.Post("/insert", middleware.VerifyToken, handle.InsertLike) //user
-	likeRouter.Get("/get", middleware.VerifyToken, handle.GetLike)
-	likeRouter.Get("/get-id/:id", middleware.VerifyToken, handle.SelectLike)
-	adminGroup.Delete("/delete/:id", middleware.VerifyToken, handle.DeleteLike) //user
+	userGroup.Post("/insert/:id", handle.InsertLike) //user
+	likeRouter.Get("/get", handle.GetLike)
+	likeRouter.Get("/get-id/:id", handle.SelectLike)
+	userGroup.Delete("/delete/:id", handle.DeleteLike) //user
 }

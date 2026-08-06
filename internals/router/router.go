@@ -13,7 +13,7 @@ func SetRouter(app fiber.Router, Db *gorm.DB) {
 	SetCategoryRouter(api,Db)
 	SetLikeRouter(api,Db)
 	SetBlogRouter(api,Db)
-	SetCommentRouter(app,Db)
-	SetReplyRouter(app,Db)
+	SetCommentRouter(api,Db)
+	SetReplyRouter(api,Db)
 
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"blog_post/pkg/logger"
 	"log"
 	"os"
 
@@ -29,7 +30,7 @@ func InitConfig() *Config {
 
 	err := godotenv.Load(".env")
 	if err != nil {
-		// logger.Log.Warn("Error Loading .env file")
+		logger.Log.Warn("Error Loading .env file")
 		log.Fatal("Error Loading .env file")
 	}
 

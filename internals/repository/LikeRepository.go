@@ -10,8 +10,8 @@ import (
 )
 
 type LikeRepo interface {
-	InsertLike(res dto.LikeRequest) error
-	GetLike(page int, limit int, offset int, islike bool, user_id uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error)
+	InsertLike(res dto.LikeRequest) (models.Like, error)
+	GetLike(page int, limit int, offset int, user_id uuid.UUID, blogid uuid.UUID) ([]models.Like, int, error)
 	SelectLike(id uuid.UUID) (models.Like, error)
 	DeleteLike(id uuid.UUID) error
 
@@ -26,11 +26,11 @@ func InitLikeRepo(Db *gorm.DB) LikeRepo {
 	return &likeRepo{Db}
 }
 
-func (likeRepo likeRepo) InsertLike(res dto.LikeRequest) error {
+func (likeRepo likeRepo) InsertLike(res dto.LikeRequest) (models.Like, error) {
 
 	LikeId, err := uuid.NewV7()
 	if err != nil {
-		return err
+		return models.Like{}, err
 	}
 
 	row := models.Like{
@@ -43,12 +43,12 @@ func (likeRepo likeRepo) InsertLike(res dto.LikeRequest) error {
 	result := likeRepo.Db.Create(&row)
 	err = result.Error
 	if err != nil {
-		return err
+		return models.Like{}, err
 	}
-	return nil
+	return row, nil
 }
 
-func (likeRepo likeRepo) GetLike(page int, limit int, offset int, islike bool, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, *dto.Pagination, error) {
+func (likeRepo likeRepo) GetLike(page int, limit int, offset int, userid uuid.UUID, blogid uuid.UUID) ([]models.Like, int, error) {
 
 	var likes []models.Like
 
@@ -58,36 +58,28 @@ func (likeRepo likeRepo) GetLike(page int, limit int, offset int, islike bool, u
 
 	err := query.Count(&count).Error
 	if err != nil {
-		return nil, nil, err
-	}
-
-	if islike != false{
-		records := query.Where("like_response = ?", islike).Session(&gorm.Session{})
-		if records.Error != nil {
-			return nil, nil, records.Error
-		}
+		return []models.Like{}, 0, err
 	}
 
 	if userid != uuid.Nil {
 		record := query.Where("user_id = ?", userid).Session(&gorm.Session{})
-		if record.Error != nil {
-			return nil, nil, record.Error
+		if record.RowsAffected == 0 {
+			return []models.Like{}, 0, errors.New("Invalid userid or userid not found")
 		}
 	}
 
 	if blogid != uuid.Nil {
 		record := query.Where("blog_id = ?", blogid).Session(&gorm.Session{})
-		if record.Error != nil {
-			return nil, nil, record.Error
+		if record.RowsAffected == 0 {
+			return []models.Like{}, 0, errors.New("Invalid blogid or blogid not found")
 		}
 	}
-
 	result := query.Limit(limit).Offset(offset).Find(&likes)
 
 	if result.RowsAffected == 0 {
-		return nil, nil, errors.New("Like Record data not found")
+		return []models.Like{}, 0, errors.New("Like Record data not found")
 	}
-	return likes, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
+	return likes, int(count), nil
 }
 
 func (likeRepo likeRepo) SelectLike(id uuid.UUID) (models.Like, error) {

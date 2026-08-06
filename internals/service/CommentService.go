@@ -3,14 +3,16 @@ package service
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/repository"
+	"blog_post/pkg/logger"
 	"blog_post/pkg/models"
 	"errors"
 
 	"github.com/gofrs/uuid"
+	"go.uber.org/zap"
 )
 
 type CommentService interface {
-	InsertComment(res dto.CommentRequest) error
+	InsertComment(res dto.CommentRequest) (models.Comment, error)
 	GetComment(page int, limit int, offset int, comment string, userid uuid.UUID, blogid uuid.UUID) ([]models.Comment, *dto.Pagination, error)
 	SelectComment(id uuid.UUID) (models.Comment, error)
 	UpdateComment(res dto.CommentRequest, id uuid.UUID) error
@@ -25,12 +27,18 @@ func InitCommentService(Repo repository.CommentRepo) CommentService {
 	return &commentService{Repo}
 }
 
-func (commentService commentService) InsertComment(res dto.CommentRequest) error {
+func (commentService commentService) InsertComment(res dto.CommentRequest) (models.Comment, error) {
 	return commentService.Repo.InsertComment(res)
 }
 
 func (commentService commentService) GetComment(page int, limit int, offset int, comment string, userid uuid.UUID, blogid uuid.UUID) ([]models.Comment, *dto.Pagination, error) {
-	return commentService.Repo.GetComment(page, limit, offset, comment, userid, blogid)
+
+	result, count, err := commentService.Repo.GetComment(page, limit, offset, comment, userid, blogid)
+	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
+		return []models.Comment{}, nil, err
+	}
+	return result, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, err
 }
 
 func (commentService commentService) SelectComment(id uuid.UUID) (models.Comment, error) {
@@ -41,11 +49,13 @@ func (commentService commentService) UpdateComment(res dto.CommentRequest, id uu
 
 	UserID, err := commentService.Repo.GetCommentUserID(id)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return err
 	}
 
 	if UserID != res.UserID {
-		return errors.New("Access Denied")
+		logger.Log.Error("Access Denied only comment user")
+		return errors.New("Access Denied only comment user")
 	}
 	return commentService.Repo.UpdateComment(res, id)
 }
@@ -58,7 +68,7 @@ func (commentService commentService) DeleteComment(id uuid.UUID, userid uuid.UUI
 	}
 
 	if UserID != userid && role != "Admin" {
-		return errors.New("Access Denied")
+		return errors.New("Access Denied only admin & comment user")
 	}
-	return commentService.Repo.DeleteComment(id, userid, role)
+	return commentService.Repo.DeleteComment(id, userid)
 }

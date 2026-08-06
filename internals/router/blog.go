@@ -16,15 +16,15 @@ func SetBlogRouter(app fiber.Router, Db *gorm.DB) {
 	service := service.InitBlogService(repo)
 	handle := handler.InitBlogHandler(service)
 
-	blogRouter := app.Group("blog")
+	blogRouter := app.Group("/blog")
 	blogRouter.Use(middleware.VerifyToken)
 
-	userGroup := app.Group("user/blog")
+	userGroup := app.Group("/user/blog")
 	userGroup.Use(middleware.RoleAuthorizeMiddleware("User", "Admin"), middleware.AuthUserMiddleware(), middleware.VerifyToken)
 
-	userGroup.Post("/insert", handle.InsertBlog) // only by author (specific user who create the blog)
+	userGroup.Post("/insert", handle.InsertBlog) // Admin & User
 	blogRouter.Get("/get", handle.GetBlog)
 	blogRouter.Get("/get-id/:id", handle.SelectBlog)
-	userGroup.Patch("/update/:id", handle.UpdateBlog)  // only by author (specific user who create the blog)
+	userGroup.Patch("/update/:id", handle.UpdateBlog)  // Admin & User
 	userGroup.Delete("/delete/:id", handle.DeleteBlog) // Admin & User
 }

@@ -20,3 +20,6 @@ type BlogResponse struct {
 type BlogPostResponse struct {
 	Blog models.Blog `json:"blog"`
 }
+type BlogPostResponses struct {
+	Blog []models.Blog `json:"blog"`
+}

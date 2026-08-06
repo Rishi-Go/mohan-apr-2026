@@ -3,12 +3,14 @@ package handler
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/service"
+	"blog_post/pkg/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 type ReplyHandler struct {
@@ -21,28 +23,48 @@ func InitReplyHandler(svc service.ReplyService) *ReplyHandler {
 
 func (h *ReplyHandler) InsertReply(Ctx fiber.Ctx) error {
 
+	uuidStr := Ctx.Params("id")
+
+	commentid, err := uuid.FromString(uuidStr)
+
+	if err != nil {
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+
 	var res = dto.ReplyRequest{}
+
+	res.CommentID = commentid
 
 	claims := Ctx.Locals("user_id").(jwt.MapClaims)
 
 	userID := claims["id"].(string)
 
-	author_id, err := uuid.FromString(userID)
+	authorid, err := uuid.FromString(userID)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
-	res.UserID = author_id
+	res.UserID = authorid
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = h.Service.InsertReply(res)
+	result, err := h.Service.InsertReply(res)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to add reply", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message": "Reply created successfully", "StatusCode": fiber.StatusCreated})
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Reply added successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.ReplyInsertResponse{
+			Reply: result,
+		},
+	})
+	logger.Log.Info("Reply added successfully")
+
 	if err != nil {
 
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -89,14 +111,21 @@ func (h *ReplyHandler) GetReply(Ctx fiber.Ctx) error {
 
 	result, Page, err := h.Service.GetReply(page, limit, offset, reply, commentid, userid)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to retreive reply details", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: &dto.ReplyInsertResponses{
+			Reply: result,
+		}})
 	}
 
-	err = Ctx.JSON(&dto.ReplyResponse{
-		Reply:      result,
-		Pagination: *Page,
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Reply details retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.ReplyResponse{
+			Reply:      result,
+			Pagination: *Page,
+		},
 	})
+	logger.Log.Info("Reply details retreived successfully")
 
 	if err != nil {
 
@@ -105,6 +134,7 @@ func (h *ReplyHandler) GetReply(Ctx fiber.Ctx) error {
 	return nil
 
 }
+
 func (h *ReplyHandler) SelectReply(Ctx fiber.Ctx) error {
 
 	uuidStr := Ctx.Params("id")
@@ -118,11 +148,19 @@ func (h *ReplyHandler) SelectReply(Ctx fiber.Ctx) error {
 
 	ID, err := h.Service.SelectReply(replyId)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to retreive reply detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorMessage{Message: err.Error(), StatusCode: http.StatusNotFound, ID: replyId})
 	}
 
-	err = Ctx.JSON(ID)
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Reply detail retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.ReplyInsertResponse{
+			Reply: ID,
+		},
+	})
+	logger.Log.Info("Reply detail retreived successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -151,15 +189,24 @@ func (h *ReplyHandler) UpdateReply(Ctx fiber.Ctx) error {
 	res.UserID = ID
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	err = h.Service.UpdateReply(res, replyId)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to update reply detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Update Reply Record", ID: ID}})
 	}
 
-	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: replyId})
+	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Reply Updated successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.Response{
+			Message: "Successfully Updated Record", ID: ID,
+		}})
+	logger.Log.Info("Reply Updated successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -181,16 +228,26 @@ func (h *ReplyHandler) DeleteReply(Ctx fiber.Ctx) error {
 
 	role := claims["role"].(string)
 
-	LoginUser, err := uuid.FromString(userID)
+	UserId, err := uuid.FromString(userID)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = h.Service.DeleteReply(ReplyId ,LoginUser, role)
+	err = h.Service.DeleteReply(ReplyId, UserId, role)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to Delete reply detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Deleted Reply Record", ID: UserId}})
 	}
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: ReplyId})
+
+	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Reply Deleted successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.Response{
+			Message: "Successfully Deleted Record", ID: UserId,
+		},
+	})
+	logger.Log.Info("Reply Updated successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

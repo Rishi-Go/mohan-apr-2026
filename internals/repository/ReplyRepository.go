@@ -10,8 +10,8 @@ import (
 )
 
 type ReplyRepo interface {
-	InsertReply(res dto.ReplyRequest) error
-	GetReply(page int, limit int, offset int, reply string, commentid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error)
+	InsertReply(res dto.ReplyRequest)  (models.Reply, error)
+	GetReply(page int, limit int, offset int, reply string, commentid uuid.UUID, userid uuid.UUID) ([]models.Reply, int, error)
 	SelectReply(id uuid.UUID) (models.Reply, error)
 	UpdateReply(res dto.ReplyRequest, id uuid.UUID) error
 	DeleteReply(id uuid.UUID) error
@@ -27,11 +27,11 @@ func InitReplyRepo(Db *gorm.DB) ReplyRepo {
 	return &replyRepo{Db}
 }
 
-func (replyRepo replyRepo) InsertReply(res dto.ReplyRequest) error {
+func (replyRepo replyRepo) InsertReply(res dto.ReplyRequest) (models.Reply, error) {
 
 	ReplyId, err := uuid.NewV7()
 	if err != nil {
-		return err
+		return models.Reply{},err
 	}
 
 	row := models.Reply{
@@ -44,12 +44,12 @@ func (replyRepo replyRepo) InsertReply(res dto.ReplyRequest) error {
 	result := replyRepo.Db.Create(&row)
 	err = result.Error
 	if err != nil {
-		return err
+		return models.Reply{}, err
 	}
-	return nil
+	return row,nil
 }
 
-func (replyRepo replyRepo) GetReply(page int, limit int, offset int, reply string, commentid uuid.UUID, userid uuid.UUID) ([]models.Reply, *dto.Pagination, error) {
+func (replyRepo replyRepo) GetReply(page int, limit int, offset int, reply string, commentid uuid.UUID, userid uuid.UUID) ([]models.Reply, int, error) {
 
 	var replys []models.Reply
 
@@ -59,36 +59,36 @@ func (replyRepo replyRepo) GetReply(page int, limit int, offset int, reply strin
 
 	err := query.Count(&count).Error
 	if err != nil {
-		return nil, nil, err
+		return []models.Reply{}, 0, err
 	}
 
 	if reply != "" {
-		records := query.Where("reply LIKE ?", "%"+reply+"%").Session(&gorm.Session{})
+		records := query.Where("reply ILIKE ?", "%"+reply+"%").Session(&gorm.Session{})
 		if records.Error != nil {
-			return nil, nil, records.Error
+			return []models.Reply{}, 0, records.Error
 		}
 	}
 
 	if commentid != uuid.Nil {
 		record := query.Where("comment_id = ?", commentid).Session(&gorm.Session{})
 		if record.Error != nil {
-			return nil, nil, record.Error
+			return []models.Reply{}, 0, record.Error
 		}
 	}
 
 	if userid != uuid.Nil {
 		record := query.Where("user_id = ?", userid).Session(&gorm.Session{})
 		if record.Error != nil {
-			return nil, nil, record.Error
+			return []models.Reply{}, 0, record.Error
 		}
 	}
 
 	result := query.Limit(limit).Offset(offset).Find(&replys)
 
 	if result.RowsAffected == 0 {
-		return nil, nil, errors.New("Like Record data not found")
+		return []models.Reply{}, 0, errors.New("Reply Record data not found")
 	}
-	return replys, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, nil
+	return replys,int(count), nil
 }
 
 func (replyRepo replyRepo) SelectReply(id uuid.UUID) (models.Reply, error) {

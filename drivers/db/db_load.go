@@ -2,9 +2,11 @@ package db
 
 import (
 	"blog_post/config"
+	"blog_post/pkg/logger"
 	"blog_post/pkg/models"
 	"fmt"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -15,13 +17,13 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 
 	db, err := gorm.Open(postgres.Open(dst), &gorm.Config{})
 	if err != nil {
-		// logger.Log.Warn("Failed to connect to the database", zap.String("Error:", err.Error()))
+		logger.Log.Warn("Failed to connect to the database", zap.String("Error:", err.Error()))
 		return nil, fmt.Errorf("Failed to connect to the database:%w", err)
 	}
 
 	err = db.AutoMigrate(&models.BlogUsers{}, &models.Blog{}, &models.Category{}, &models.Comment{}, &models.Like{}, &models.Reply{})
 	if err != nil {
-		// logger.Log.With(zap.String("Migration Error:", err.Error()))
+		logger.Log.With(zap.String("Migration Error:", err.Error()))
 		return nil, fmt.Errorf("Migration Error: %v", err)
 	}
 	return db, nil

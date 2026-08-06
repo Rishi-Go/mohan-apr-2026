@@ -16,3 +16,11 @@ type ReplyResponse struct {
 	Reply      []models.Reply `json:"reply"`
 	Pagination Pagination     `json:"pagination"`
 }
+
+type ReplyInsertResponse struct {
+	Reply models.Reply `json:"reply"`
+}
+
+type ReplyInsertResponses struct {
+	Reply []models.Reply `json:"reply"`
+}

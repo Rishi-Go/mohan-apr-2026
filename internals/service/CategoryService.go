@@ -3,9 +3,11 @@ package service
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/repository"
+	"blog_post/pkg/logger"
 	"blog_post/pkg/models"
 
 	"github.com/gofrs/uuid"
+	"go.uber.org/zap"
 )
 
 type CategoryService interface {
@@ -31,7 +33,7 @@ func (category categoryService) InsertCategory(res dto.CategoryRequest) (models.
 func (category categoryService) GetCategory(page int, limit int, offset int, name string) ([]models.Category, *dto.Pagination, error) {
 	result, count, err := category.Repo.GetCategory(page, limit, offset, name)
 	if err != nil {
-		// logger.Log.With(zap.String("Error:", err.Error()))
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return []models.Category{}, nil, err
 	}
 

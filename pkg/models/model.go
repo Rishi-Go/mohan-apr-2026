@@ -63,14 +63,13 @@ type Comment struct {
 
 type Like struct {
 	ID           uuid.UUID      `json:"id" gorm:"type:uuid;default:gen_random_uuid();primarykey"`
-	LikeResponse bool         `json:"like_response"`
+	LikeResponse bool         	`json:"like_response"`
 	BlogID       uuid.UUID      `json:"blog_id"`
 	Blog         Blog           `json:"-" gorm:"foreignkey:BlogID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	UserID       uuid.UUID      `json:"user_id"`
 	BlogUser     BlogUsers      `json:"-" gorm:"foreignkey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	CreatedAt    time.Time      `json:"created_at" gorm:"type:timestamptz;default:CURRENT_TIMESTAMP"`
 	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
 type Reply struct {

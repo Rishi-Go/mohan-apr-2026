@@ -4,20 +4,24 @@ import (
 	"blog_post/config"
 	"blog_post/drivers/db"
 	"blog_post/internals/router"
+	"blog_post/pkg/logger"
 	"fmt"
 	"log"
 
 	"github.com/gofiber/fiber/v3"
+	"go.uber.org/zap"
 )
 
 func main() {
 
 	//initializing Zaplogger
-	// logger.InitLogger()
+	logger.Init("development")
+	defer logger.Sync()
 
-	// defer logger.Log.Sync()
-	// log.Fatal("Zap logger started successfully")
-	// logger.Log.Info("Zap Logger Initialized")
+	// Call structured log entries using strictly typed fields
+	logger.Log.Info("Server starting up",
+		zap.String("port", ":8080"),
+	)
 
 	// initialize configs
 	cfg := config.InitConfig()

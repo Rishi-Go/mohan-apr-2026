@@ -3,6 +3,7 @@ package handler
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/service"
+	"blog_post/pkg/logger"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 type AuthHandler struct {
@@ -68,7 +70,7 @@ func (h *AuthHandler) SignUpUser(Ctx fiber.Ctx) error {
 
 	result, err := h.Service.SignUpUser(res)
 	if err != nil {
-		// logger.Log.Error("Validation failed", zap.String("Error:", err.Error()))
+		logger.Log.Error("Failed to SignUp User", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(fiber.Map{"Error": "Validation failed", "Details": err.Error(), "StatusCode": http.StatusBadRequest})
 	}
 
@@ -79,7 +81,7 @@ func (h *AuthHandler) SignUpUser(Ctx fiber.Ctx) error {
 			BlogUsers: result,
 		},
 	})
-	// logger.Log.Info("User registered successfully")
+	logger.Log.Info("User registered successfully")
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -97,21 +99,21 @@ func (h *AuthHandler) GetUser(Ctx fiber.Ctx) error {
 	if page < 1 {
 		page = 1
 	} else if err != nil {
-		// logger.Log.With(zap.String("Error:", err.Error()))
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	limit, err := strconv.Atoi(Ctx.Query("limit"))
 
 	if limit > 99 || limit < 0 {
-		// logger.Log.Debug("Limit should be with in 1 - 99")
+		logger.Log.Debug("Limit should be with in 1 - 99")
 		return Ctx.Status(http.StatusInternalServerError).JSON(dto.ErrorResponse{Message: "Limit should be with in 1 - 99", StatusCode: http.StatusInternalServerError})
 	} else if limit == 0 {
 
 		limit = 10
 
 	} else if err != nil {
-		// logger.Log.With(zap.String("Error:", err.Error()))
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
@@ -119,7 +121,7 @@ func (h *AuthHandler) GetUser(Ctx fiber.Ctx) error {
 
 	result, Page, err := h.Service.GetUser(page, limit, offset, username, email)
 	if err != nil {
-		// logger.Log.Error("failed to get user details", zap.String("Error:", err.Error()))
+		logger.Log.Error("failed to get user details", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: &dto.BlogUsersResponse{
 			BlogUsers: result,
 		}})
@@ -134,10 +136,9 @@ func (h *AuthHandler) GetUser(Ctx fiber.Ctx) error {
 			Pagination: *Page,
 		},
 	})
-	// logger.Log.Info("User details retreived successfully")
+	logger.Log.Info("User details retreived successfully")
 
 	if err != nil {
-		// logger.Log.Warn("User Details Not found", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
@@ -150,13 +151,13 @@ func (h *AuthHandler) SelectUser(Ctx fiber.Ctx) error {
 
 	UserId, err := uuid.FromString(uuidStr)
 	if err != nil {
-		// logger.Log.With(zap.String("Error:", err.Error()))
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
 	ID, err := h.Service.SelectUser(UserId)
 	if err != nil {
-		// logger.Log.With(zap.String("Error:", err.Error()))
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorMessage{Message: err.Error(), StatusCode: http.StatusNotFound, ID: UserId})
 	}
 
@@ -166,8 +167,10 @@ func (h *AuthHandler) SelectUser(Ctx fiber.Ctx) error {
 		Data: &dto.BlogUserResponse{
 			BlogUsers: ID,
 		}})
+	logger.Log.Info("User detail retreived successfully")
 
 	if err != nil {
+		logger.Log.Warn("User Details Not found", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
@@ -179,6 +182,7 @@ func (h *AuthHandler) UpdateUser(Ctx fiber.Ctx) error {
 
 	UserId, err := uuid.FromString(uuidStr)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
@@ -190,17 +194,19 @@ func (h *AuthHandler) UpdateUser(Ctx fiber.Ctx) error {
 
 	LogInUser, err := uuid.FromString(userID)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 	role := claims["role"].(string)
 
 	if err := Ctx.Bind().Body(&res); err != nil {
-
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	err = h.Service.UpdateUser(res, UserId, LogInUser, role)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Update Record", ID: UserId}})
 	}
 
@@ -210,6 +216,7 @@ func (h *AuthHandler) UpdateUser(Ctx fiber.Ctx) error {
 		Data: &dto.Response{
 			Message: "Successfully Updated Record", ID: UserId,
 		}})
+	logger.Log.Info("User detail Updated successfully")
 
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -226,6 +233,7 @@ func (h *AuthHandler) DeleteUser(Ctx fiber.Ctx) error {
 	userID := claims["id"].(string)
 	LogInUser, err := uuid.FromString(userID)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
@@ -233,11 +241,13 @@ func (h *AuthHandler) DeleteUser(Ctx fiber.Ctx) error {
 
 	UserId, err := uuid.FromString(uuidStr)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
 	err = h.Service.DeleteUser(UserId, LogInUser, role)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Delete Record", ID: UserId}})
 	}
 	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
@@ -246,6 +256,8 @@ func (h *AuthHandler) DeleteUser(Ctx fiber.Ctx) error {
 		Data: &dto.Response{
 			Message: "Successfully deleted Record", ID: UserId,
 		}})
+	logger.Log.Info("User detail deleted successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -257,11 +269,13 @@ func (h *AuthHandler) LogInUser(Ctx fiber.Ctx) error {
 	var res dto.LogInRequest
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	tokenString, err := h.Service.LogInUser(res)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
@@ -275,7 +289,10 @@ func (h *AuthHandler) LogInUser(Ctx fiber.Ctx) error {
 	})
 
 	err = Ctx.Status(http.StatusOK).JSON(dto.TokenMessage{Message: "Logged In Successfully", Token: tokenString, StatusCode: http.StatusOK})
+	logger.Log.Info("User logged in successfully")
+
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusUnauthorized).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusUnauthorized})
 	}
 

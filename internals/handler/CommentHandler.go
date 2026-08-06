@@ -3,12 +3,14 @@ package handler
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/service"
+	"blog_post/pkg/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 type CommentHandler struct {
@@ -21,7 +23,17 @@ func InitCommentHandler(svc service.CommentService) *CommentHandler {
 
 func (h *CommentHandler) InsertComment(Ctx fiber.Ctx) error {
 
+	uuidStr := Ctx.Params("id")
+
+	BlogId, err := uuid.FromString(uuidStr)
+
+	if err != nil {
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+
 	var res = dto.CommentRequest{}
+
+	res.BlogID = BlogId
 
 	claims := Ctx.Locals("user_id").(jwt.MapClaims)
 
@@ -35,18 +47,26 @@ func (h *CommentHandler) InsertComment(Ctx fiber.Ctx) error {
 	res.UserID = ID
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = h.Service.InsertComment(res)
+	result, err := h.Service.InsertComment(res)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to add Comment", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message":"Comments created successfully", "StatusCode": fiber.StatusCreated})
-	if err != nil {
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Comment added successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.CommentInsertResponse{
+			Comments: result,
+		},
+	})
+	logger.Log.Info("Comment added successfully")
 
+	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
@@ -84,7 +104,6 @@ func (h *CommentHandler) GetComment(Ctx fiber.Ctx) error {
 		limit = 10
 
 	} else if err != nil {
-
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
@@ -92,18 +111,23 @@ func (h *CommentHandler) GetComment(Ctx fiber.Ctx) error {
 
 	result, Page, err := h.Service.GetComment(page, limit, offset, comment, userid, blogid)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
-
+		logger.Log.Error("Failed to retreived comment details", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: &dto.CommentInsertResponses{
+			Comments: result,
+		}})
 	}
 
-	err = Ctx.JSON(&dto.CommentResponse{
-		Comments:   result,
-		Pagination: *Page,
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Comment details retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.CommentResponse{
+			Comments:   result,
+			Pagination: *Page,
+		},
 	})
+	logger.Log.Info("Comment details retreived successfully")
 
 	if err != nil {
-
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 	return nil
@@ -121,13 +145,21 @@ func (h *CommentHandler) SelectComment(Ctx fiber.Ctx) error {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	ID, err := h.Service.SelectComment(CommentId)
+	comment, err := h.Service.SelectComment(CommentId)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to retreived comment detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorMessage{Message: err.Error(), StatusCode: http.StatusNotFound, ID: CommentId})
 	}
 
-	err = Ctx.JSON(ID)
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Comment detail retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.CommentInsertResponse{
+			Comments: comment,
+		},
+	})
+	logger.Log.Info("Comment detail retreived successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -135,7 +167,7 @@ func (h *CommentHandler) SelectComment(Ctx fiber.Ctx) error {
 }
 
 func (h *CommentHandler) UpdateComment(Ctx fiber.Ctx) error {
-	
+
 	uuidStr := Ctx.Params("id")
 
 	CommentId, err := uuid.FromString(uuidStr)
@@ -156,15 +188,24 @@ func (h *CommentHandler) UpdateComment(Ctx fiber.Ctx) error {
 	res.UserID = ID
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	err = h.Service.UpdateComment(res, CommentId)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to update comment detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Update Comment Record", ID: CommentId}})
 	}
 
-	err = Ctx.JSON(dto.Response{Message: "UPDATED SUCCESSFULLY", ID: CommentId})
+	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Comment Updated successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.Response{
+			Message: "Successfully Updated Record", ID: CommentId,
+		}})
+	logger.Log.Info("Comment Updated successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -193,10 +234,18 @@ func (h *CommentHandler) DeleteComment(Ctx fiber.Ctx) error {
 
 	err = h.Service.DeleteComment(CommentId, LoginUser, role)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to delete comment detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Delete Comment Record", ID: CommentId}})
 	}
 
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: CommentId})
+	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Comment Deleted successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.Response{
+			Message: "Successfully Deleted Record", ID: CommentId,
+		}})
+	logger.Log.Info("Comment Deleted successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

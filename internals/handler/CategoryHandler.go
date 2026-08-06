@@ -3,11 +3,13 @@ package handler
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/service"
+	"blog_post/pkg/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
+	"go.uber.org/zap"
 )
 
 type CategoryHandler struct {
@@ -23,11 +25,13 @@ func (h *CategoryHandler) InsertCategory(Ctx fiber.Ctx) error {
 	var res = dto.CategoryRequest{}
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	result, err := h.Service.InsertCategory(res)
 	if err != nil {
+		logger.Log.Error("Failed to Insert Category details", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
@@ -38,6 +42,7 @@ func (h *CategoryHandler) InsertCategory(Ctx fiber.Ctx) error {
 			Category: result,
 		},
 	})
+	logger.Log.Info("Category register successfully")
 
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -76,6 +81,7 @@ func (h *CategoryHandler) GetCategory(Ctx fiber.Ctx) error {
 
 	result, Page, err := h.Service.GetCategory(page, limit, offset, category_name)
 	if err != nil {
+		logger.Log.Error("Failed to retreived Category details", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: &dto.CategoryInsertsResponse{
 			Category: result,
 		}})
@@ -89,6 +95,7 @@ func (h *CategoryHandler) GetCategory(Ctx fiber.Ctx) error {
 			Pagination: *Page,
 		},
 	})
+	logger.Log.Info("Category details retreived successfully")
 
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
@@ -107,6 +114,7 @@ func (h *CategoryHandler) SelectCategory(Ctx fiber.Ctx) error {
 
 	ID, err := h.Service.SelectCategory(CategoryId)
 	if err != nil {
+		logger.Log.Error("Failed to retreived Category detail", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorMessage{Message: err.Error(), StatusCode: http.StatusNotFound, ID: CategoryId})
 	}
 
@@ -117,6 +125,8 @@ func (h *CategoryHandler) SelectCategory(Ctx fiber.Ctx) error {
 			Category: ID,
 		},
 	})
+	logger.Log.Info("Category detail retreived successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -135,11 +145,13 @@ func (h *CategoryHandler) UpdateCategory(Ctx fiber.Ctx) error {
 	var res = dto.CategoryRequest{}
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
 	err = h.Service.UpdateCategory(res, CategoryId)
 	if err != nil {
+		logger.Log.Error("Failed to Update Category detail", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Update Category Record", ID: CategoryId}})
 	}
 
@@ -149,6 +161,8 @@ func (h *CategoryHandler) UpdateCategory(Ctx fiber.Ctx) error {
 		Data: &dto.Response{
 			Message: "Successfully Updated Record", ID: CategoryId,
 		}})
+	logger.Log.Info("Category Updated successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -166,6 +180,7 @@ func (h *CategoryHandler) DeleteCategory(Ctx fiber.Ctx) error {
 
 	err = h.Service.DeleteCategory(CategoryId)
 	if err != nil {
+		logger.Log.Error("Failed to Delete Category detail", zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Delete Category Record", ID: CategoryId}})
 	}
 
@@ -175,6 +190,8 @@ func (h *CategoryHandler) DeleteCategory(Ctx fiber.Ctx) error {
 		Data: &dto.Response{
 			Message: "Successfully Delete Record", ID: CategoryId,
 		}})
+	logger.Log.Info("Category Delete successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

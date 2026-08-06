@@ -3,10 +3,12 @@ package service
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/repository"
+	"blog_post/pkg/logger"
 	"blog_post/pkg/models"
 	"errors"
 
 	"github.com/gofrs/uuid"
+	"go.uber.org/zap"
 )
 
 type BlogService interface {
@@ -30,9 +32,10 @@ func (blogService blogService) InsertBlog(res dto.BlogRequest) (models.Blog, err
 }
 
 func (blogService blogService) GetBlog(page int, limit int, offset int, title string, categoryId uuid.UUID, authorId uuid.UUID) ([]models.Blog, *dto.Pagination, error) {
-	result,count,err:=blogService.Repo.GetBlog(page, limit, offset, title, categoryId, authorId)
+	result, count, err := blogService.Repo.GetBlog(page, limit, offset, title, categoryId, authorId)
 	if err != nil {
-		return []models.Blog{},nil ,err
+		logger.Log.With(zap.String("Error:", err.Error()))
+		return []models.Blog{}, nil, err
 	}
 	return result, &dto.Pagination{Page: page, Limit: limit, Total: int(count)}, err
 }
@@ -45,10 +48,12 @@ func (blogService blogService) UpdateBlog(res dto.BlogRequest, id uuid.UUID, rol
 
 	AuthorID, err := blogService.Repo.GetBlogAuthorID(id)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return err
 	}
 
 	if AuthorID != res.AuthorID && role != "Admin" {
+		logger.Log.Error("Access Denied")
 		return errors.New("Access Denied")
 	}
 	return blogService.Repo.UpdateBlog(res, id, role)
@@ -58,10 +63,12 @@ func (blogService blogService) DeleteBlog(id uuid.UUID, authorID uuid.UUID, role
 
 	AuthorID, err := blogService.Repo.GetBlogAuthorID(id)
 	if err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return err
 	}
 
 	if AuthorID != authorID && role != "Admin" {
+		logger.Log.Error("Access Denied")
 		return errors.New("Access Denied")
 	}
 

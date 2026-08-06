@@ -3,12 +3,14 @@ package handler
 import (
 	"blog_post/internals/dto"
 	"blog_post/internals/service"
+	"blog_post/pkg/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 type LikeHandler struct {
@@ -21,7 +23,17 @@ func InitLikeHandler(svc service.LikeService) *LikeHandler {
 
 func (h *LikeHandler) InsertLike(Ctx fiber.Ctx) error {
 
+	uuidStr := Ctx.Params("id")
+
+	blogid, err := uuid.FromString(uuidStr)
+
+	if err != nil {
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
+	}
+
 	var res = dto.LikeRequest{}
+
+	res.BlogID = blogid
 
 	claims := Ctx.Locals("user_id").(jwt.MapClaims)
 
@@ -34,30 +46,32 @@ func (h *LikeHandler) InsertLike(Ctx fiber.Ctx) error {
 	res.UserID = userid
 
 	if err := Ctx.Bind().Body(&res); err != nil {
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = h.Service.InsertLike(res)
+	result, err := h.Service.InsertLike(res)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to insert like", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 
-	err = Ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"Message": "Liked successfully", "StatusCode": fiber.StatusCreated})
-	if err != nil {
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Like added successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.LikeInsertResponse{
+			Like: result,
+		},
+	})
+	logger.Log.Info("Like added successfully")
 
+	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
 	return nil
 }
 
 func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
-
-	like := Ctx.Query("like")
-	islike, err := strconv.ParseBool(like)
-	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: "Conversion error", StatusCode: http.StatusBadRequest})
-	}
 
 	userStr := Ctx.Query("user-id")
 
@@ -92,16 +106,23 @@ func (h *LikeHandler) GetLike(Ctx fiber.Ctx) error {
 
 	offset := (page - 1) * limit
 
-	result, Page, err := h.Service.GetLike(page, limit, offset, islike, userid, blogid)
+	result, Page, err := h.Service.GetLike(page, limit, offset, userid, blogid)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to retreived like details", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: &dto.LikeInsertResponses{
+			Like: result,
+		}})
 	}
 
-	err = Ctx.JSON(&dto.LikeResponse{
-		Like:       result,
-		Pagination: *Page,
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Like details retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.LikeResponse{
+			Like:       result,
+			Pagination: *Page,
+		},
 	})
+	logger.Log.Info("Like details retreived successfully")
 
 	if err != nil {
 
@@ -124,11 +145,19 @@ func (h *LikeHandler) SelectLike(Ctx fiber.Ctx) error {
 
 	ID, err := h.Service.SelectLike(LikeId)
 	if err != nil {
-
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to retreived like detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorMessage{Message: err.Error(), StatusCode: http.StatusNotFound, ID: LikeId})
 	}
 
-	err = Ctx.JSON(ID)
+	err = Ctx.Status(fiber.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Like detail retreived successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.LikeInsertResponse{
+			Like: ID,
+		},
+	})
+	logger.Log.Info("Like detail retreived successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}
@@ -146,18 +175,26 @@ func (h *LikeHandler) DeleteLike(Ctx fiber.Ctx) error {
 	claims := Ctx.Locals("user_id").(jwt.MapClaims)
 
 	userID := claims["id"].(string)
-	role := claims["role"].(string)
 
-	LoginUser, err := uuid.FromString(userID)
+	UserId, err := uuid.FromString(userID)
 	if err != nil {
 		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 	}
 
-	err = h.Service.DeleteLike(LikeId, LoginUser, role)
+	err = h.Service.DeleteLike(LikeId, UserId)
 	if err != nil {
-		return Ctx.Status(http.StatusBadRequest).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		logger.Log.Error("Failed to Delete like detail", zap.String("Error:", err.Error()))
+		return Ctx.Status(http.StatusBadRequest).JSON(dto.SuccessResponse{Message: err.Error(), StatusCode: http.StatusBadRequest, Data: dto.Response{Message: "Failed to Delete Like Record", ID: UserId}})
 	}
-	err = Ctx.JSON(dto.Response{Message: "DELETED SUCCESSFULLY", ID: LikeId})
+
+	err = Ctx.Status(http.StatusOK).JSON(&dto.SuccessResponse{
+		Message:    "Like Removed successfully",
+		StatusCode: fiber.StatusOK,
+		Data: &dto.Response{
+			Message: "Successfully Delete Record", ID: UserId,
+		}})
+	logger.Log.Info("Like Removed successfully")
+
 	if err != nil {
 		return Ctx.Status(http.StatusNotFound).JSON(dto.ErrorResponse{Message: err.Error(), StatusCode: http.StatusNotFound})
 	}

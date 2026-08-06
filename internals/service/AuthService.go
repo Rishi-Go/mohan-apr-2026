@@ -4,10 +4,12 @@ import (
 	"blog_post/internals/dto"
 	"blog_post/internals/middleware"
 	"blog_post/internals/repository"
+	"blog_post/pkg/logger"
 	"blog_post/pkg/models"
 	"errors"
 
 	"github.com/gofrs/uuid"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -37,7 +39,7 @@ func (auth authService) SignUpUser(res dto.SignUpRequest) (models.BlogUsers, err
 func (auth authService) GetUser(page int, limit int, offset int, username string, email string) ([]models.BlogUsers, *dto.Pagination, error) {
 	result, count, err := auth.Repo.GetUser(page, limit, offset, username, email)
 	if err != nil {
-		// logger.Log.With(zap.String("Error:", err.Error()))
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return []models.BlogUsers{}, nil, err
 	}
 
@@ -52,12 +54,12 @@ func (auth authService) SelectUser(id uuid.UUID) (models.BlogUsers, error) {
 func (auth authService) UpdateUser(res dto.SignUpRequest, id uuid.UUID, userid uuid.UUID, role string) error {
 	UserID, err := auth.Repo.GetBlogUserID(id)
 	if err != nil {
-		// logger.Log.With(zap.String("Error:", err.Error()))
+		logger.Log.With(zap.String("Error:", err.Error()))
 		return err
 	}
 
 	if UserID != userid && role != "Admin" {
-		// logger.Log.Error("Access Denied Only Admin or Owner")
+		logger.Log.Error("Access Denied Only Admin or Owner")
 		return errors.New("Access Denied Only Admin or Owner")
 	}
 	return auth.Repo.UpdateUser(res, id, userid, role)
@@ -71,7 +73,7 @@ func (auth authService) DeleteUser(id uuid.UUID, userid uuid.UUID, role string) 
 	}
 
 	if UserID != userid && role != "Admin" {
-		// logger.Log.Error("Access Denied Only Admin or Owner")
+		logger.Log.Error("Access Denied Only Admin or Owner")
 		return errors.New("Access Denied Only Admin or Owner")
 	}
 
@@ -88,13 +90,13 @@ func (auth authService) LogInUser(res dto.LogInRequest) (string, error) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(users.PasswordHash), []byte(res.Password))
 	if err != nil {
-		// logger.Log.Error("Invalid Password, check your password")
+		logger.Log.Error("Invalid Password, check your password")
 		return "", errors.New("Invalid Password, check your password")
 	}
 
 	TokenStr, err := middleware.GenerateToken(res, users)
 	if err != nil {
-		// logger.Log.Error("Failed to generate token")
+		logger.Log.Error("Failed to generate token")
 		return "", errors.New("Failed to generate token")
 	}
 	return TokenStr, nil
